@@ -1,0 +1,5 @@
+// Community Service 특화 의존성
+dependencies {
+    // Core Service 의존성
+    implementation project(':services:core-service')
+}

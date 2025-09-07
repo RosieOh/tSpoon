@@ -1,0 +1,13 @@
+// API Gateway 특화 의존성
+dependencies {
+    implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+    
+    // JWT (API Gateway에서 직접 사용)
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+    
+    // Jackson for JSON processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+}

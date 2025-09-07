@@ -1,0 +1,4 @@
+// Eureka Server 특화 의존성
+dependencies {
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server'
+}

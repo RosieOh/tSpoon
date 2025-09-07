@@ -1,0 +1,104 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+
+# JWT 설정
+jwt:
+  secret: tspoon-jwt-secret-key-2024-education-community
+  expiration: 86400000 # 24시간 (밀리초)
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        # User Service
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=1
+        
+        # Community Service
+        - id: community-service
+          uri: lb://community-service
+          predicates:
+            - Path=/api/boards/**, /api/comments/**, /api/likes/**
+          filters:
+            - StripPrefix=1
+        
+        # Education Service
+        - id: education-service
+          uri: lb://education-service
+          predicates:
+            - Path=/api/contents/**, /api/courses/**, /api/materials/**
+          filters:
+            - StripPrefix=1
+        
+        # QnA Service
+        - id: qna-service
+          uri: lb://qna-service
+          predicates:
+            - Path=/api/questions/**, /api/answers/**
+          filters:
+            - StripPrefix=1
+        
+        # Event Service
+        - id: event-service
+          uri: lb://event-service
+          predicates:
+            - Path=/api/events/**, /api/notices/**
+          filters:
+            - StripPrefix=1
+        
+        # Notification Service
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=1
+      
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
