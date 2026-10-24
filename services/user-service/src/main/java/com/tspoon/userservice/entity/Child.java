@@ -15,7 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "TBL_CHILD")
+@Table(name = "children")
 @Getter
 @Setter
 @Builder

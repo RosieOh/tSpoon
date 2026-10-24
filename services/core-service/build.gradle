@@ -1,6 +1,7 @@
 // 도메인 서비스들이 공유하는 라이브러리: JWT 인증, Security 기본 설정, 공통 예외/응답 포맷
 plugins {
     id 'tspoon.java-library'
+    id 'java-test-fixtures'
 }
 
 dependencies {
@@ -15,4 +16,9 @@ dependencies {
 
     annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // 도메인 서비스 테스트가 공유하는 PostgreSQL Testcontainers 설정
+    testFixturesApi 'org.springframework.boot:spring-boot-test'
+    testFixturesApi 'org.springframework.boot:spring-boot-testcontainers'
+    testFixturesApi 'org.testcontainers:testcontainers-postgresql'
 }

@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "TBL_EVENT")
+@Table(name = "events")
 @Getter
 @Setter
 @Builder

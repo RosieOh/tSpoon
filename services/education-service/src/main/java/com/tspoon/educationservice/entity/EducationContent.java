@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "TBL_EDUCATION_CONTENT")
+@Table(name = "education_contents")
 @Getter
 @Setter
 @Builder
