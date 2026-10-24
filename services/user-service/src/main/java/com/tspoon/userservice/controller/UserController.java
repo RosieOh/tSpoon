@@ -4,6 +4,7 @@ import com.tspoon.core.security.AuthUser;
 import com.tspoon.userservice.dto.ChildResponse;
 import com.tspoon.userservice.dto.LoginRequest;
 import com.tspoon.userservice.dto.LoginResponse;
+import com.tspoon.userservice.dto.PublicUserResponse;
 import com.tspoon.userservice.dto.SignupRequest;
 import com.tspoon.userservice.dto.UpdateProfileRequest;
 import com.tspoon.userservice.dto.UserResponse;
@@ -53,9 +54,8 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        UserResponse response = userService.getUserById(id);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<PublicUserResponse> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getPublicProfile(id));
     }
 
     @GetMapping
