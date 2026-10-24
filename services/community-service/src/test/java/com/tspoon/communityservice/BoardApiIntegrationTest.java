@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "eureka.client.enabled=false")
+@SpringBootTest(properties = {"eureka.client.enabled=false", "tspoon.outbox.relay-enabled=false"})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class BoardApiIntegrationTest {

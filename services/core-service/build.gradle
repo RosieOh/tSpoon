@@ -23,4 +23,6 @@ dependencies {
     testFixturesApi 'org.springframework.boot:spring-boot-test'
     testFixturesApi 'org.springframework.boot:spring-boot-testcontainers'
     testFixturesApi 'org.testcontainers:testcontainers-postgresql'
+    testFixturesApi 'org.testcontainers:testcontainers-kafka'
+    testFixturesImplementation 'org.apache.kafka:kafka-clients'
 }
