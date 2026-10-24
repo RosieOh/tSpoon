@@ -80,7 +80,10 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       args: { SERVICE: user-service, PORT: 8081 }
-    environment: *domain-service-env
+    environment:
+      <<: *domain-service-env
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     depends_on: *domain-service-depends-on
 
   community-service:
