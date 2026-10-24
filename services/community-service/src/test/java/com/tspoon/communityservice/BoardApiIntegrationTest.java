@@ -95,6 +95,22 @@ class BoardApiIntegrationTest {
                 .hasStatus(HttpStatus.BAD_REQUEST);
     }
 
+    @Test
+    void 에러는_ProblemDetail_형식이고_표준_예외도_한국어로_설명한다() {
+        assertThat(mvc.get().uri("/api/boards").param("category", "NOT_A_CATEGORY"))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .bodyJson().extractingPath("$.detail").isEqualTo("'category' 의 값 'NOT_A_CATEGORY' 이(가) 올바르지 않습니다.");
+
+        assertThat(mvc.get().uri("/api/boards/{id}", 999_999))
+                .hasStatus(HttpStatus.NOT_FOUND)
+                .bodyJson().satisfies(json -> {
+                    assertThat(json).extractingPath("$.title").isEqualTo("Not Found");
+                    assertThat(json).extractingPath("$.detail").isEqualTo("게시글을 찾을 수 없습니다.");
+                    assertThat(json).extractingPath("$.instance").isEqualTo("/api/boards/999999");
+                });
+    }
+
     private MvcTestResult like(Integer boardId, String token) {
         return mvc.post().uri("/api/boards/{id}/like", boardId)
                 .header(HttpHeaders.AUTHORIZATION, token)

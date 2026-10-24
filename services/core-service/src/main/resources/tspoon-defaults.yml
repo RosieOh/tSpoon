@@ -12,6 +12,10 @@ spring:
     hibernate:
       # 스키마는 Flyway(db/migration)가 만들고, Hibernate 는 엔티티와 맞는지 검증만 한다
       ddl-auto: validate
+  messages:
+    # 표준 예외의 한국어 에러 문구 (core-service 의 tspoon-problem-messages.properties)
+    # 서비스가 자체 messages.properties 를 두면 basename: messages,tspoon-problem-messages 로 함께 적는다
+    basename: tspoon-problem-messages
   autoconfigure:
     exclude:
       # JWT 로만 인증하므로 Boot 가 만드는 기본 in-memory 사용자(랜덤 비밀번호)는 필요 없다
