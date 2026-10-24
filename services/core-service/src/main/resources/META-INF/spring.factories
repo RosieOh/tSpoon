@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+com.tspoon.core.autoconfigure.TspoonDefaultsEnvironmentPostProcessor
