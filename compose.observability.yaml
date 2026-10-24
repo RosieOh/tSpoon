@@ -1,0 +1,40 @@
+# 관측성 스택(Grafana LGTM: Loki·Grafana·Tempo·Mimir + OTel Collector)을 함께 띄운다.
+#   docker compose -f compose.yaml -f compose.observability.yaml up -d --build --wait
+#   또는 ./start-msa.sh --observability
+# Grafana: http://localhost:3000 (admin / admin) → Explore 에서 Tempo(추적) · Loki(로그) · Prometheus(메트릭)
+#
+# 각 서비스는 아래 환경변수가 있을 때만 OTLP 로 내보낸다. 기본 compose.yaml 만 쓰면 내보내지 않는다.
+
+x-otlp-env: &otlp-env
+  MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://lgtm:4318/v1/traces
+  MANAGEMENT_OPENTELEMETRY_LOGGING_EXPORT_OTLP_ENDPOINT: http://lgtm:4318/v1/logs
+  MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED: "true"
+  MANAGEMENT_OTLP_METRICS_EXPORT_URL: http://lgtm:4318/v1/metrics
+  MANAGEMENT_OTLP_METRICS_EXPORT_STEP: 15s
+
+services:
+  lgtm:
+    image: grafana/otel-lgtm:0.38.0
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+      # IDE 에서 띄운 서비스도 보낼 수 있게 OTLP(HTTP) 포트를 연다
+      - "${OTLP_HTTP_PORT:-4318}:4318"
+    networks:
+      - tspoon-network
+
+  eureka-server:
+    environment: *otlp-env
+  api-gateway:
+    environment: *otlp-env
+  user-service:
+    environment: *otlp-env
+  community-service:
+    environment: *otlp-env
+  education-service:
+    environment: *otlp-env
+  qna-service:
+    environment: *otlp-env
+  event-service:
+    environment: *otlp-env
+  notification-service:
+    environment: *otlp-env
