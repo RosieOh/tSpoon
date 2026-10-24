@@ -188,6 +188,18 @@ def scenario_education():
     check("북마크 200 · 내 북마크에 노출", s1 == 200 and s2 == 200 and mine["content"][0]["id"] == cid, f"{s1} {s2}")
 
 
+def scenario_qna():
+    print("[qna] 질문·전문가 답변·채택")
+    _, _, parent = signup_login("질문하는부모")
+    s, question, _ = call("POST", "/api/questions", {"title": "E2E 질문", "content": "내용", "category": "LEARNING"}, token=parent)
+    _, expert = promote("EXPERT")
+    s2, answer, _ = call("POST", f"/api/questions/{question['id']}/answers", {"content": "전문가 답변"}, token=expert)
+    check("질문 201 · 답변 201 · 답변 유형 EXPERT", (s, s2) == (201, 201) and answer["type"] == "EXPERT", f"{s} {s2} {answer}")
+    s, detail, _ = call("POST", f"/api/questions/{question['id']}/answers/{answer['id']}/accept", token=parent)
+    s2, _, _ = call("POST", f"/api/questions/{question['id']}/answers/{answer['id']}/accept", token=parent)
+    check("채택 200 → 답변 완료 · 다시 채택 409", s == 200 and detail["status"] == "ANSWERED" and s2 == 409, f"{s} {s2}")
+
+
 def scenario_docs():
     print("[docs] Gateway 통합 API 문서")
     s, config, _ = call("GET", "/v3/api-docs/swagger-config")
@@ -206,6 +218,7 @@ SCENARIOS = {
     "privacy": scenario_privacy,
     "board": scenario_board,
     "education": scenario_education,
+    "qna": scenario_qna,
     "docs": scenario_docs,
 }
 
