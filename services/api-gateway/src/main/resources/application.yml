@@ -48,6 +48,50 @@ spring:
               predicates:
                 - Path=/api/notifications/**
 
+
+            # 서비스별 OpenAPI 문서 — 아래 springdoc.swagger-ui.urls 가 이 경로를 모아 보여 준다
+            - id: user-service-docs
+              uri: lb://user-service
+              predicates:
+                - Path=/docs/user-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: community-service-docs
+              uri: lb://community-service
+              predicates:
+                - Path=/docs/community-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: education-service-docs
+              uri: lb://education-service
+              predicates:
+                - Path=/docs/education-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: qna-service-docs
+              uri: lb://qna-service
+              predicates:
+                - Path=/docs/qna-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: event-service-docs
+              uri: lb://event-service
+              predicates:
+                - Path=/docs/event-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: notification-service-docs
+              uri: lb://notification-service
+              predicates:
+                - Path=/docs/notification-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
           # CORS 는 Gateway 에서만 처리한다 (서비스는 비활성화)
           globalcors:
             cors-configurations:
@@ -69,6 +113,25 @@ tspoon:
         - /api/users/login
         - /api/users/register
         - /api/users/token/refresh
+
+# 서비스별 문서를 한곳에서: http://localhost:8080/swagger-ui.html
+# 운영에서 숨기려면 SPRINGDOC_SWAGGER_UI_ENABLED=false, SPRINGDOC_API_DOCS_ENABLED=false
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: 회원 (user-service)
+        url: /docs/user-service/v3/api-docs
+      - name: 커뮤니티 (community-service)
+        url: /docs/community-service/v3/api-docs
+      - name: 교육 콘텐츠 (education-service)
+        url: /docs/education-service/v3/api-docs
+      - name: Q&A (qna-service)
+        url: /docs/qna-service/v3/api-docs
+      - name: 행사 (event-service)
+        url: /docs/event-service/v3/api-docs
+      - name: 알림 (notification-service)
+        url: /docs/notification-service/v3/api-docs
 
 eureka:
   client:
