@@ -16,6 +16,13 @@ spring:
     # 표준 예외의 한국어 에러 문구 (core-service 의 tspoon-problem-messages.properties)
     # 서비스가 자체 messages.properties 를 두면 basename: messages,tspoon-problem-messages 로 함께 적는다
     basename: tspoon-problem-messages
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    producer:
+      acks: all
+      properties:
+        # 브로커가 없을 때 전송이 오래 붙잡히지 않게 한다 (outbox 릴레이는 다음 주기에 다시 보낸다)
+        max.block.ms: 5000
   autoconfigure:
     exclude:
       # JWT 로만 인증하므로 Boot 가 만드는 기본 in-memory 사용자(랜덤 비밀번호)는 필요 없다

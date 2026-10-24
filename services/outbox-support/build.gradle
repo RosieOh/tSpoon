@@ -1,0 +1,15 @@
+// Transactional Outbox — 도메인 변경과 같은 DB 트랜잭션에 이벤트를 기록하고, 릴레이가 Kafka 로 보낸다.
+// 이벤트를 발행하는 서비스(community, qna)가 쓴다. outbox_events 테이블은 각 서비스의 Flyway 마이그레이션이 만든다.
+plugins {
+    id 'tspoon.java-library'
+}
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter-kafka'
+    implementation 'org.springframework:spring-jdbc'
+    implementation 'org.springframework:spring-tx'
+    implementation 'tools.jackson.core:jackson-databind'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}
