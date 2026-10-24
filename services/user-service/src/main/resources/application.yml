@@ -13,6 +13,10 @@ tspoon:
     public-paths:
       - /api/users/register
       - /api/users/login
+  # 둘 다 있고 관리자가 한 명도 없을 때만 기동 시 관리자 계정을 만든다
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
 
 logging:
   level:
