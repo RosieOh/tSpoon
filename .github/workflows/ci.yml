@@ -67,6 +67,10 @@ jobs:
       - name: Run E2E through API Gateway
         run: python3 scripts/e2e.py
 
+      # 알림 서비스를 멈춘 사이 발생한 이벤트도 재시작 뒤 알림이 되는지 (outbox + Kafka)
+      - name: Run outbox resilience scenario
+        run: python3 scripts/e2e.py outbox-resilience
+
       - name: Collect compose logs
         if: failure()
         run: |

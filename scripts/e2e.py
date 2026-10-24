@@ -8,6 +8,7 @@
 """
 import json
 import os
+import subprocess
 import sys
 import time
 import urllib.error
@@ -248,6 +249,56 @@ def scenario_notifications():
     check("이메일 알림 201 → Mailpit 에 도착", s == 201 and delivered, f"{s} {delivered}")
 
 
+def unread_count(token, at_least, timeout=30):
+    """알림은 Kafka 를 거쳐 비동기로 만들어지므로 기다리며 확인한다."""
+    deadline = time.time() + timeout
+    count = None
+    while time.time() < deadline:
+        s, body, _ = call("GET", "/api/notifications/unread-count", token=token)
+        count = body.get("count") if s == 200 and isinstance(body, dict) else None
+        if count is not None and count >= at_least:
+            return count
+        time.sleep(1)
+    return count
+
+
+def scenario_domain_events():
+    print("[domain-events] 댓글·답변·채택 → Kafka → 알림")
+    _, _, writer = signup_login("글쓴부모")
+    _, _, commenter = signup_login("댓글부모")
+    _, board, _ = call("POST", "/api/boards", {"title": "알림 받을 글", "content": "본문", "category": "GENERAL"}, token=writer)
+    call("POST", f"/api/boards/{board['id']}/comments", {"content": "응원합니다"}, token=commenter)
+    check("남의 글 댓글 → 글쓴이 알림 1", unread_count(writer, 1) == 1, unread_count(writer, 1, timeout=1))
+    _, mine, _ = call("GET", "/api/notifications", token=writer)
+    check("알림 제목·이동 경로", mine["content"][0]["title"] == "내 게시글에 댓글이 달렸습니다"
+          and mine["content"][0]["actionUrl"] == f"/boards/{board['id']}", mine["content"][:1])
+
+    _, _, asker = signup_login("질문부모")
+    _, question, _ = call("POST", "/api/questions", {"title": "알림 질문", "content": "내용", "category": "LEARNING"}, token=asker)
+    _, expert = promote("EXPERT")
+    _, answer, _ = call("POST", f"/api/questions/{question['id']}/answers", {"content": "전문가 답변"}, token=expert)
+    call("POST", f"/api/questions/{question['id']}/answers/{answer['id']}/accept", token=asker)
+    check("답변 → 질문자 알림 · 채택 → 답변자 알림", unread_count(asker, 1) == 1 and unread_count(expert, 1) == 1,
+          f"{unread_count(asker, 1, 1)} {unread_count(expert, 1, 1)}")
+
+
+def scenario_outbox_resilience():
+    """알림 서비스가 멈춘 동안의 이벤트도 다시 켜면 알림이 된다 (#20 완료 기준). docker compose 를 직접 다룬다."""
+    print("[outbox-resilience] 알림 서비스 중단 → 댓글 → 재시작")
+    _, _, writer = signup_login("중단중글쓴이")
+    _, _, commenter = signup_login("중단중댓글")
+    _, board, _ = call("POST", "/api/boards", {"title": "중단 중 댓글", "content": "본문", "category": "GENERAL"}, token=writer)
+
+    subprocess.run(["docker", "compose", "stop", "notification-service"], check=True, capture_output=True)
+    try:
+        s, _, _ = call("POST", f"/api/boards/{board['id']}/comments", {"content": "멈춘 사이 댓글"}, token=commenter)
+        check("알림 서비스가 멈춰도 댓글 작성 201", s == 201, s)
+    finally:
+        subprocess.run(["docker", "compose", "start", "notification-service"], check=True, capture_output=True)
+        subprocess.run(["docker", "compose", "up", "-d", "--wait", "notification-service"], check=True, capture_output=True)
+    check("재시작 뒤 놓친 알림 도착", unread_count(writer, 1, timeout=90) == 1, unread_count(writer, 1, 1))
+
+
 def scenario_docs():
     print("[docs] Gateway 통합 API 문서")
     s, config, _ = call("GET", "/v3/api-docs/swagger-config")
@@ -269,12 +320,19 @@ SCENARIOS = {
     "qna": scenario_qna,
     "events": scenario_events,
     "notifications": scenario_notifications,
+    "domain-events": scenario_domain_events,
     "docs": scenario_docs,
+}
+
+# 컨테이너를 멈췄다 켜는 시나리오는 이름을 직접 줄 때만 돈다
+OPT_IN_SCENARIOS = {
+    "outbox-resilience": scenario_outbox_resilience,
 }
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
-    names = sys.argv[1:] or list(SCENARIOS)
+    SCENARIOS.update({name: OPT_IN_SCENARIOS[name] for name in sys.argv[1:] if name in OPT_IN_SCENARIOS})
+    names = sys.argv[1:] or [name for name in SCENARIOS if name not in OPT_IN_SCENARIOS]
     if not wait_ready(["/api/boards", "/api/users/profile"]):
         print("Gateway 라우팅 준비 안 됨")
         sys.exit(1)
