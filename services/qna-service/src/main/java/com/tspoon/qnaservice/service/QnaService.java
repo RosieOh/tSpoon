@@ -3,6 +3,7 @@ package com.tspoon.qnaservice.service;
 import com.tspoon.auth.AuthUser;
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.exception.ResourceNotFoundException;
+import com.tspoon.outbox.OutboxEventPublisher;
 import com.tspoon.qnaservice.dto.AnswerRequest;
 import com.tspoon.qnaservice.dto.AnswerResponse;
 import com.tspoon.qnaservice.dto.QuestionDetailResponse;
@@ -11,6 +12,7 @@ import com.tspoon.qnaservice.dto.QuestionSummary;
 import com.tspoon.qnaservice.entity.Answer;
 import com.tspoon.qnaservice.entity.Question;
 import com.tspoon.qnaservice.entity.Question.QuestionStatus;
+import com.tspoon.qnaservice.event.QnaEvents;
 import com.tspoon.qnaservice.repository.AnswerRepository;
 import com.tspoon.qnaservice.repository.QuestionRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ public class QnaService {
 
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     @Transactional(readOnly = true)
     public Page<QuestionSummary> search(Question.QuestionCategory category, QuestionStatus status, int page, int size) {
@@ -123,6 +126,8 @@ public class QnaService {
                 .attachments(request.attachments())
                 .status(Answer.AnswerStatus.ACTIVE)
                 .build());
+        outboxEventPublisher.publish(QnaEvents.TOPIC, QnaEvents.AGGREGATE_QUESTION, questionId,
+                QnaEvents.ANSWER_CREATED, QnaEvents.AnswerCreated.of(question, answer));
         questionRepository.incrementAnswerCount(questionId);
         return AnswerResponse.from(answer);
     }
@@ -167,6 +172,8 @@ public class QnaService {
         Answer accepted = answerRepository.findById(answerId).orElseThrow();
         accepted.setIsAccepted(true);
         answerRepository.flush();
+        outboxEventPublisher.publish(QnaEvents.TOPIC, QnaEvents.AGGREGATE_QUESTION, questionId,
+                QnaEvents.ANSWER_ACCEPTED, QnaEvents.AnswerAccepted.of(question, accepted));
         return getQuestionWithoutCounting(questionId);
     }
 

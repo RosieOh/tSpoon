@@ -1,3 +1,8 @@
 plugins {
     id 'tspoon.domain-service'
 }
+
+dependencies {
+    // 댓글·답변 등 도메인 이벤트를 Transactional Outbox 로 Kafka 에 발행
+    implementation project(':services:outbox-support')
+}

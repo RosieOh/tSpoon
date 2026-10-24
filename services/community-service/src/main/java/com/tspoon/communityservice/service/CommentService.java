@@ -6,10 +6,12 @@ import com.tspoon.communityservice.dto.CommentResponse;
 import com.tspoon.communityservice.dto.CommentUpdateRequest;
 import com.tspoon.communityservice.entity.Board;
 import com.tspoon.communityservice.entity.Comment;
+import com.tspoon.communityservice.event.CommunityEvents;
 import com.tspoon.communityservice.repository.BoardRepository;
 import com.tspoon.communityservice.repository.CommentRepository;
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.exception.ResourceNotFoundException;
+import com.tspoon.outbox.OutboxEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final BoardRepository boardRepository;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(Long boardId) {
@@ -50,9 +53,7 @@ public class CommentService {
 
     public CommentResponse create(AuthUser authUser, Long boardId, CommentRequest request) {
         Board board = findActiveBoard(boardId);
-        if (request.parentCommentId() != null) {
-            verifyReplyTarget(boardId, request.parentCommentId());
-        }
+        Comment parent = request.parentCommentId() == null ? null : findReplyTarget(boardId, request.parentCommentId());
 
         Comment comment = commentRepository.save(Comment.builder()
                 .board(board)
@@ -62,6 +63,9 @@ public class CommentService {
                 .parentCommentId(request.parentCommentId())
                 .status(Comment.CommentStatus.ACTIVE)
                 .build());
+        // 같은 트랜잭션에 이벤트를 기록한다 — 알림(notification-service)은 Kafka 로 받아 만든다
+        outboxEventPublisher.publish(CommunityEvents.TOPIC, CommunityEvents.AGGREGATE_BOARD, boardId,
+                CommunityEvents.COMMENT_CREATED, CommunityEvents.CommentCreated.of(board, comment, parent));
         boardRepository.incrementCommentCount(boardId);
         return CommentResponse.of(comment, List.of());
     }
@@ -85,7 +89,7 @@ public class CommentService {
         boardRepository.decrementCommentCount(comment.getBoard().getId());
     }
 
-    private void verifyReplyTarget(Long boardId, Long parentCommentId) {
+    private Comment findReplyTarget(Long boardId, Long parentCommentId) {
         Comment parent = findActiveComment(parentCommentId);
         if (!parent.getBoard().getId().equals(boardId)) {
             throw new BusinessException("다른 게시글의 댓글에는 답글을 달 수 없습니다.");
@@ -93,6 +97,7 @@ public class CommentService {
         if (parent.getParentCommentId() != null) {
             throw new BusinessException("답글에는 답글을 달 수 없습니다.");
         }
+        return parent;
     }
 
     private Board findActiveBoard(Long boardId) {
