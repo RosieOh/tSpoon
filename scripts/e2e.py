@@ -200,6 +200,27 @@ def scenario_qna():
     check("채택 200 → 답변 완료 · 다시 채택 409", s == 200 and detail["status"] == "ANSWERED" and s2 == 409, f"{s} {s2}")
 
 
+def scenario_events():
+    print("[events] 행사 등록·정원·취소")
+    import datetime
+    start = (datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))) + datetime.timedelta(days=7)).replace(microsecond=0, tzinfo=None)
+    _, teacher = promote("TEACHER")
+    event = {"title": "E2E 세미나", "description": "설명", "type": "SEMINAR", "maxParticipants": 1,
+             "startDate": start.isoformat(), "endDate": (start + datetime.timedelta(hours=2)).isoformat()}
+    s, created, _ = call("POST", "/api/events", event, token=teacher)
+    check("교사의 행사 등록 201", s == 201, f"{s} {created}")
+    eid = created["id"]
+    _, _, first = signup_login("첫신청")
+    _, _, second = signup_login("둘째신청")
+    s1, _, _ = call("POST", f"/api/events/{eid}/registrations", {}, token=first)
+    s2, body, _ = call("POST", f"/api/events/{eid}/registrations", {}, token=second)
+    check("첫 신청 201 · 정원 마감 409", (s1, s2) == (201, 409), f"{s1} {s2} {body}")
+    s3, _, _ = call("DELETE", f"/api/events/{eid}/registrations/me", token=first)
+    s4, _, _ = call("POST", f"/api/events/{eid}/registrations", {}, token=second)
+    _, detail, _ = call("GET", f"/api/events/{eid}")
+    check("취소 204 → 자리 반환 → 둘째 신청 201 · 다시 FULL", (s3, s4) == (204, 201) and detail["status"] == "FULL", f"{s3} {s4} {detail.get('status')}")
+
+
 def scenario_docs():
     print("[docs] Gateway 통합 API 문서")
     s, config, _ = call("GET", "/v3/api-docs/swagger-config")
@@ -219,6 +240,7 @@ SCENARIOS = {
     "board": scenario_board,
     "education": scenario_education,
     "qna": scenario_qna,
+    "events": scenario_events,
     "docs": scenario_docs,
 }
 
