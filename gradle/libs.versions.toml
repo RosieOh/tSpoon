@@ -8,7 +8,7 @@ spring-cloud = "2025.1.4"
 spring-dependency-management = "1.1.7"
 jjwt = "0.13.0"
 # springdoc 3.0.x 는 Boot 4.0, 3.1.x 는 Boot 4.1 용
-springdoc = "3.0.3"
+springdoc = "3.1.1"
 # Boot 4.0.9 가 관리하는 OpenTelemetry SDK(1.55.0)에 맞춘 계측 라이브러리 버전
 opentelemetry-instrumentation = "2.21.0-alpha"
 
