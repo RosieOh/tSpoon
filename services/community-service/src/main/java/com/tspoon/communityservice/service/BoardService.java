@@ -78,9 +78,12 @@ public class BoardService {
         return BoardResponse.from(boardRepository.saveAndFlush(board));
     }
 
+    // 작성자 본인 또는 관리자(운영상 삭제)
     public void deleteBoard(AuthUser authUser, Long id) {
         Board board = findActiveBoard(id);
-        verifyAuthor(board, authUser, "게시글을 삭제할 권한이 없습니다.");
+        if (!authUser.isAdmin()) {
+            verifyAuthor(board, authUser, "게시글을 삭제할 권한이 없습니다.");
+        }
 
         board.setStatus(Board.BoardStatus.DELETED);
     }
