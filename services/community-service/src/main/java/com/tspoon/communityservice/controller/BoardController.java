@@ -1,10 +1,10 @@
 package com.tspoon.communityservice.controller;
 
+import com.tspoon.auth.AuthUser;
 import com.tspoon.communityservice.dto.BoardRequest;
 import com.tspoon.communityservice.dto.BoardResponse;
 import com.tspoon.communityservice.entity.Board;
 import com.tspoon.communityservice.service.BoardService;
-import com.tspoon.core.security.AuthUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

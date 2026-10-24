@@ -1,5 +1,6 @@
 package com.tspoon.communityservice.service;
 
+import com.tspoon.auth.AuthUser;
 import com.tspoon.communityservice.dto.BoardRequest;
 import com.tspoon.communityservice.dto.BoardResponse;
 import com.tspoon.communityservice.entity.Board;
@@ -8,7 +9,6 @@ import com.tspoon.communityservice.repository.BoardLikeRepository;
 import com.tspoon.communityservice.repository.BoardRepository;
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.exception.ResourceNotFoundException;
-import com.tspoon.core.security.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

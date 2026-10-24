@@ -10,9 +10,8 @@ dependencies {
     api 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework:spring-tx' // DataIntegrityViolationException 처리용
 
-    implementation libs.jjwt.api
-    runtimeOnly libs.jjwt.impl
-    runtimeOnly libs.jjwt.jackson
+    // JWT 발급·검증 (api-gateway 와 같은 구현을 쓴다)
+    api project(':services:auth-support')
 
     annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

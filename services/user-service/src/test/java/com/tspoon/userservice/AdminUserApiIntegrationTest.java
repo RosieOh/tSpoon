@@ -1,8 +1,8 @@
 package com.tspoon.userservice;
 
 import com.jayway.jsonpath.JsonPath;
-import com.tspoon.core.jwt.JwtUtil;
-import com.tspoon.core.security.AuthUser;
+import com.tspoon.auth.AuthUser;
+import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.test.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

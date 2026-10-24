@@ -1,9 +1,9 @@
 package com.tspoon.userservice.service;
 
+import com.tspoon.auth.AuthUser;
+import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.exception.ResourceNotFoundException;
-import com.tspoon.core.jwt.JwtUtil;
-import com.tspoon.core.security.AuthUser;
 import com.tspoon.userservice.dto.ChildResponse;
 import com.tspoon.userservice.dto.LoginRequest;
 import com.tspoon.userservice.dto.LoginResponse;

@@ -1,8 +1,8 @@
 package com.tspoon.userservice.service;
 
+import com.tspoon.auth.AuthUser;
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.exception.ResourceNotFoundException;
-import com.tspoon.core.security.AuthUser;
 import com.tspoon.userservice.dto.UserResponse;
 import com.tspoon.userservice.entity.User;
 import com.tspoon.userservice.repository.UserRepository;
