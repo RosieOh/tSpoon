@@ -1,0 +1,140 @@
+# 실행: ./start-msa.sh  (또는 ./gradlew bootJar && docker compose up -d --build)
+# 외부 진입점은 API Gateway(8080)와 Eureka 대시보드(8761)뿐이다. 도메인 서비스는 내부 네트워크에서만 접근한다.
+name: tspoon
+
+x-java-service: &java-service
+  restart: unless-stopped
+  networks:
+    - tspoon-network
+  deploy:
+    resources:
+      limits:
+        memory: 512M
+
+x-domain-service-env: &domain-service-env
+  DB_HOST: postgres
+  DB_USERNAME: ${POSTGRES_USER:-tspoon}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:-tspoon}
+  EUREKA_URL: http://eureka-server:8761/eureka/
+  JWT_SECRET: ${JWT_SECRET:-local-dev-only-jwt-secret-change-me-0123456789}
+
+x-domain-service-depends-on: &domain-service-depends-on
+  postgres:
+    condition: service_healthy
+  eureka-server:
+    condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tspoon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tspoon}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18 이미지부터 데이터 경로가 /var/lib/postgresql/18/docker 로 바뀌어 상위 디렉터리를 마운트한다
+      - postgres-data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tspoon-network
+
+  eureka-server:
+    <<: *java-service
+    image: tspoon/eureka-server
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: eureka-server, PORT: 8761 }
+    environment:
+      EUREKA_HOSTNAME: eureka-server
+    ports:
+      - "8761:8761"
+
+  api-gateway:
+    <<: *java-service
+    image: tspoon/api-gateway
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: api-gateway, PORT: 8080 }
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
+  user-service:
+    <<: *java-service
+    image: tspoon/user-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: user-service, PORT: 8081 }
+    environment: *domain-service-env
+    depends_on: *domain-service-depends-on
+
+  community-service:
+    <<: *java-service
+    image: tspoon/community-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: community-service, PORT: 8082 }
+    environment: *domain-service-env
+    depends_on: *domain-service-depends-on
+
+  education-service:
+    <<: *java-service
+    image: tspoon/education-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: education-service, PORT: 8083 }
+    environment: *domain-service-env
+    depends_on: *domain-service-depends-on
+
+  qna-service:
+    <<: *java-service
+    image: tspoon/qna-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: qna-service, PORT: 8084 }
+    environment: *domain-service-env
+    depends_on: *domain-service-depends-on
+
+  event-service:
+    <<: *java-service
+    image: tspoon/event-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: event-service, PORT: 8085 }
+    environment: *domain-service-env
+    depends_on: *domain-service-depends-on
+
+  notification-service:
+    <<: *java-service
+    image: tspoon/notification-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: notification-service, PORT: 8086 }
+    environment: *domain-service-env
+    depends_on: *domain-service-depends-on
+
+volumes:
+  postgres-data:
+
+networks:
+  tspoon-network:
