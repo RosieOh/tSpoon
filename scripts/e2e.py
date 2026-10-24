@@ -3,7 +3,7 @@
 사용: docker compose up -d --build --wait 후
       python3 scripts/e2e.py [시나리오...]      (시나리오를 생략하면 전부)
 
-환경변수: E2E_GATEWAY(기본 http://localhost:8080), ADMIN_EMAIL, ADMIN_PASSWORD(compose 에 넘긴 값과 같아야 함)
+환경변수: E2E_GATEWAY(기본 http://localhost:8080), E2E_MAILPIT(기본 http://localhost:8025), ADMIN_EMAIL, ADMIN_PASSWORD(compose 에 넘긴 값과 같아야 함)
 외부 패키지 없이 표준 라이브러리만 쓴다.
 """
 import json
@@ -15,6 +15,7 @@ import urllib.request
 import uuid
 
 GATEWAY = os.environ.get("E2E_GATEWAY", "http://localhost:8080")
+MAILPIT = os.environ.get("E2E_MAILPIT", "http://localhost:8025")
 ADMIN = (os.environ.get("ADMIN_EMAIL", "admin@tspoon.local"),
          os.environ.get("ADMIN_PASSWORD", "change-me-admin-password"))
 results = []
@@ -221,6 +222,32 @@ def scenario_events():
     check("취소 204 → 자리 반환 → 둘째 신청 201 · 다시 FULL", (s3, s4) == (204, 201) and detail["status"] == "FULL", f"{s3} {s4} {detail.get('status')}")
 
 
+def scenario_notifications():
+    print("[notifications] 관리자 공지 → 알림함·이메일")
+    admin = admin_token()
+    uid, _, token = signup_login("알림받는회원")
+    s, _, _ = call("POST", "/api/admin/notifications",
+                   {"recipients": [{"userId": uid}], "title": "E2E 공지", "content": "내용", "channel": "IN_APP"}, token=admin)
+    s2, count, _ = call("GET", "/api/notifications/unread-count", token=token)
+    s3, read, _ = call("PATCH", "/api/notifications/read-all", token=token)
+    check("앱 내 알림 201 → 안 읽은 1 → 모두 읽음 1", (s, s2) == (201, 200) and count["count"] == 1 and read["updated"] == 1,
+          f"{s} {s2} {count} {read}")
+
+    subject = f"E2E 메일 {uuid.uuid4().hex[:6]}"
+    s, _, _ = call("POST", "/api/admin/notifications",
+                   {"recipients": [{"userId": uid, "email": "e2e@tspoon.com"}], "title": subject, "content": "본문", "channel": "EMAIL"},
+                   token=admin)
+    delivered = False
+    for _ in range(20):
+        with urllib.request.urlopen(MAILPIT + "/api/v1/messages", timeout=5) as r:
+            messages = json.loads(r.read().decode("utf-8")).get("messages", [])
+        if any(m["Subject"] == "[티스푼] " + subject for m in messages):
+            delivered = True
+            break
+        time.sleep(1)
+    check("이메일 알림 201 → Mailpit 에 도착", s == 201 and delivered, f"{s} {delivered}")
+
+
 def scenario_docs():
     print("[docs] Gateway 통합 API 문서")
     s, config, _ = call("GET", "/v3/api-docs/swagger-config")
@@ -241,6 +268,7 @@ SCENARIOS = {
     "education": scenario_education,
     "qna": scenario_qna,
     "events": scenario_events,
+    "notifications": scenario_notifications,
     "docs": scenario_docs,
 }
 
