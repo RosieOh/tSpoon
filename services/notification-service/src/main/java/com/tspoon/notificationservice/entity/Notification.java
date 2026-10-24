@@ -11,7 +11,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "notifications")
@@ -62,21 +62,21 @@ public class Notification {
     private String metadata; // 추가 메타데이터 (JSON 형태)
     
     @Column
-    private LocalDateTime scheduledAt; // 예약 발송 시간
+    private Instant scheduledAt; // 예약 발송 시간
     
     @Column
-    private LocalDateTime sentAt; // 실제 발송 시간
+    private Instant sentAt; // 실제 발송 시간
     
     @Column
-    private LocalDateTime readAt; // 읽은 시간
+    private Instant readAt; // 읽은 시간
     
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     
     @LastModifiedDate
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
     
     public enum NotificationType {
         SYSTEM,         // 시스템 알림

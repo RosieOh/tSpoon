@@ -135,6 +135,17 @@ class BoardApiIntegrationTest {
                 });
     }
 
+    @Test
+    void 생성_시각은_시간대가_붙은_ISO_8601_로_내려온다() {
+        MvcTestResult created = mvc.post().uri("/api/boards")
+                .header(HttpHeaders.AUTHORIZATION, bearer(4L, "시간"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(BOARD_JSON)
+                .exchange();
+
+        assertThat(created).bodyJson().extractingPath("$.createdAt").asString().endsWith("Z");
+    }
+
     private MvcTestResult like(Integer boardId, String token) {
         return mvc.post().uri("/api/boards/{id}/like", boardId)
                 .header(HttpHeaders.AUTHORIZATION, token)

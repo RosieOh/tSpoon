@@ -11,6 +11,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +51,7 @@ public class Event {
     @Column(nullable = false)
     private EventStatus status = EventStatus.ACTIVE;
     
+    // 일정은 사람이 정하는 행사 현지 시각(한국 시간)이라 시간대 없이 둔다. 생성·수정 시각만 Instant
     @Column(nullable = false)
     private LocalDateTime startDate;
     
@@ -93,11 +95,11 @@ public class Event {
     
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     
     @LastModifiedDate
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
     
     public enum EventType {
         SEMINAR,        // 세미나
