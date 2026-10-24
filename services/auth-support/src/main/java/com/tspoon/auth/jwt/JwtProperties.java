@@ -1,4 +1,4 @@
-package com.tspoon.core.jwt;
+package com.tspoon.auth.jwt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -10,7 +10,8 @@ import java.time.Duration;
 public record JwtProperties(
         String secret,
         @DefaultValue("tspoon") String issuer,
-        @DefaultValue("24h") Duration accessTokenTtl
+        @DefaultValue("30m") Duration accessTokenTtl,
+        @DefaultValue("14d") Duration refreshTokenTtl
 ) {
 
     private static final int MIN_SECRET_BYTES = 32; // HS256 최소 키 길이 (256bit)

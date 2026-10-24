@@ -1,6 +1,6 @@
 package com.tspoon.userservice.controller;
 
-import com.tspoon.core.security.AuthUser;
+import com.tspoon.auth.AuthUser;
 import com.tspoon.userservice.dto.ChangeRoleRequest;
 import com.tspoon.userservice.dto.ChangeStatusRequest;
 import com.tspoon.userservice.dto.UserResponse;

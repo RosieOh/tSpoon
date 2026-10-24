@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     # 서비스가 뜬 뒤 Gateway 가 라우팅하기까지의 지연을 줄인다 (기본: 레지스트리 30초 + LB 캐시 35초)
     loadbalancer:
@@ -53,6 +57,18 @@ spring:
                 allowed-headers: "*"
                 allow-credentials: true
                 max-age: 3600
+
+tspoon:
+  jwt:
+    # 도메인 서비스와 같은 비밀키를 써야 한다 (docker compose 에서는 JWT_SECRET 으로 함께 넘김)
+    secret: ${JWT_SECRET:local-dev-only-jwt-secret-change-me-0123456789}
+  gateway:
+    auth:
+      # 로그인·가입·재발급 요청에 만료된 Access Token 이 헤더로 따라와도 막지 않는다
+      skip-paths:
+        - /api/users/login
+        - /api/users/register
+        - /api/users/token/refresh
 
 eureka:
   client:

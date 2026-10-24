@@ -10,6 +10,7 @@ plugins {
 rootProject.name = 'tspoon-msa'
 
 // 공유 라이브러리
+include 'services:auth-support'
 include 'services:core-service'
 
 // 인프라

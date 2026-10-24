@@ -1,16 +1,19 @@
 package com.tspoon.userservice.controller;
 
-import com.tspoon.core.security.AuthUser;
+import com.tspoon.auth.AuthUser;
 import com.tspoon.userservice.dto.ChildResponse;
 import com.tspoon.userservice.dto.LoginRequest;
 import com.tspoon.userservice.dto.LoginResponse;
+import com.tspoon.userservice.dto.LogoutRequest;
 import com.tspoon.userservice.dto.PublicUserResponse;
+import com.tspoon.userservice.dto.RefreshTokenRequest;
 import com.tspoon.userservice.dto.SignupRequest;
 import com.tspoon.userservice.dto.UpdateProfileRequest;
 import com.tspoon.userservice.dto.UserResponse;
 import com.tspoon.userservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,6 +38,20 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(userService.login(request));
+    }
+
+    @PostMapping("/token/refresh")
+    public ResponseEntity<LoginResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(userService.refresh(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
+            @RequestBody(required = false) LogoutRequest request) {
+        userService.logout(authUser.userId(), authorization.substring("Bearer ".length()), request);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/profile")

@@ -1,8 +1,8 @@
 package com.tspoon.core.security;
 
+import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.jwt.JwtAuthenticationEntryPoint;
 import com.tspoon.core.jwt.JwtAuthenticationFilter;
-import com.tspoon.core.jwt.JwtUtil;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,3 +1,8 @@
 plugins {
     id 'tspoon.domain-service'
 }
+
+dependencies {
+    // Refresh Token · 로그아웃 차단 목록 · 토큰 버전 저장
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+}

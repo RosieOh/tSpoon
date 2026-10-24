@@ -79,22 +79,51 @@ def scenario_auth():
 
 
 def scenario_roles():
-    print("[roles] 초기 관리자·역할 변경")
+    print("[roles] 초기 관리자·역할 변경·정지")
     admin = admin_token()
     s, _, _ = call("GET", "/api/users", token=admin)
     check("관리자 전체 목록 200", s == 200, s)
     uid, email, token = signup_login()
     s, _, _ = call("GET", "/api/users", token=token)
     check("일반 회원 전체 목록 403", s == 403, s)
-    s, body, _ = call("PATCH", f"/api/admin/users/{uid}/role", {"role": "TEACHER"}, token=admin)
-    check("Gateway 경유 역할 변경 200", s == 200 and body["role"] == "TEACHER", f"{s} {body}")
-    _, login, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
-    check("재로그인 시 새 역할", login.get("role") == "TEACHER", login)
-    s, _, _ = call("PATCH", f"/api/admin/users/{uid}/status", {"status": "SUSPENDED"}, token=admin)
-    s2, _, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
-    check("정지 후 로그인 403", s == 200 and s2 == 403, f"{s} {s2}")
     s, _, _ = call("PATCH", f"/api/admin/users/{uid}/role", {"role": "ADMIN"}, token=token)
     check("일반 회원의 관리자 API 403", s == 403, s)
+
+    s, body, _ = call("PATCH", f"/api/admin/users/{uid}/role", {"role": "TEACHER"}, token=admin)
+    check("Gateway 경유 역할 변경 200", s == 200 and body["role"] == "TEACHER", f"{s} {body}")
+    s, _, _ = call("GET", "/api/users/profile", token=token)
+    check("역할 변경 전 토큰은 Gateway 에서 401", s == 401, s)
+    _, login, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    check("재로그인 시 새 역할", login.get("role") == "TEACHER", login)
+
+    s, _, _ = call("PATCH", f"/api/admin/users/{uid}/status", {"status": "SUSPENDED"}, token=admin)
+    s2, _, _ = call("GET", "/api/users/profile", token=login["accessToken"])
+    s3, _, _ = call("POST", "/api/users/token/refresh", {"refreshToken": login["refreshToken"]})
+    s4, _, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    check("정지 후 기존 토큰 401 · 재발급 401 · 로그인 403", (s, s2, s3, s4) == (200, 401, 401, 403), f"{s} {s2} {s3} {s4}")
+
+
+def scenario_tokens():
+    print("[tokens] 재발급·재사용 감지·로그아웃")
+    _, email, _ = signup_login()
+    _, login, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    check("Access 30분 · Refresh 14일", login["expiresIn"] == 1800 and login["refreshExpiresIn"] == 1209600, login)
+
+    s, refreshed, _ = call("POST", "/api/users/token/refresh", {"refreshToken": login["refreshToken"]},
+                           token="expired-access-token-attached-by-client")
+    check("재발급 200 (헤더의 낡은 토큰은 무시)", s == 200 and refreshed["refreshToken"] != login["refreshToken"], f"{s} {refreshed}")
+    s, _, _ = call("GET", "/api/users/profile", token=refreshed["accessToken"])
+    check("새 Access Token 으로 프로필 200", s == 200, s)
+
+    s1, _, _ = call("POST", "/api/users/token/refresh", {"refreshToken": login["refreshToken"]})
+    s2, _, _ = call("POST", "/api/users/token/refresh", {"refreshToken": refreshed["refreshToken"]})
+    check("쓴 Refresh 재사용 401 → 계열 전체 폐기 401", (s1, s2) == (401, 401), f"{s1} {s2}")
+
+    _, login2, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    s, _, _ = call("POST", "/api/users/logout", {"refreshToken": login2["refreshToken"]}, token=login2["accessToken"])
+    s2, body, _ = call("GET", "/api/users/profile", token=login2["accessToken"])
+    s3, _, _ = call("POST", "/api/users/token/refresh", {"refreshToken": login2["refreshToken"]})
+    check("로그아웃 204 → 그 Access 401(Gateway) · Refresh 401", (s, s2, s3) == (204, 401, 401), f"{s} {s2} {s3} {body}")
 
 
 def scenario_privacy():
@@ -122,6 +151,7 @@ def scenario_board():
 SCENARIOS = {
     "auth": scenario_auth,
     "roles": scenario_roles,
+    "tokens": scenario_tokens,
     "privacy": scenario_privacy,
     "board": scenario_board,
 }

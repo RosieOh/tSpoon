@@ -1,8 +1,8 @@
 package com.tspoon.core.autoconfigure;
 
+import com.tspoon.auth.jwt.JwtProperties;
+import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.exception.GlobalExceptionHandler;
-import com.tspoon.core.jwt.JwtProperties;
-import com.tspoon.core.jwt.JwtUtil;
 import com.tspoon.core.security.SecurityConfig;
 import com.tspoon.core.security.TspoonSecurityProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

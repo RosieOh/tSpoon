@@ -1,5 +1,6 @@
 package com.tspoon.core.jwt;
 
+import com.tspoon.auth.jwt.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
