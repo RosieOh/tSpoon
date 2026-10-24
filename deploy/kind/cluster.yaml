@@ -1,0 +1,11 @@
+# kind 로컬 클러스터 — Gateway·Mailpit 을 호스트 포트로 연다 (docker compose 의 8080·8025 와 겹치지 않게 18080·18025)
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: tspoon
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 18080
+      - containerPort: 30025
+        hostPort: 18025
