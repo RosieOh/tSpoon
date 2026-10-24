@@ -8,6 +8,13 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/event_db
 
+tspoon:
+  security:
+    # 행사 목록·상세만 공개 (/api/events/registrations/me 처럼 두 단계 이상은 로그인 필요)
+    public-get-paths:
+      - /api/events
+      - /api/events/*
+
 logging:
   level:
     com.tspoon: DEBUG
