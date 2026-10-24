@@ -1,6 +1,10 @@
 package com.tspoon.userservice;
 
 import com.jayway.jsonpath.JsonPath;
+import com.tspoon.core.jwt.JwtUtil;
+import com.tspoon.core.security.AuthUser;
+import com.tspoon.userservice.entity.User;
+import com.tspoon.userservice.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +28,12 @@ class UserApiIntegrationTest {
 
     @Autowired
     MockMvcTester mvc;
+
+    @Autowired
+    JwtUtil jwtUtil;
+
+    @Autowired
+    UserRepository userRepository;
 
     @Test
     void 회원가입_후_로그인하면_발급된_JWT로_프로필을_조회할_수_있다() throws Exception {
@@ -87,6 +97,60 @@ class UserApiIntegrationTest {
                 .extractingPath("$.data")
                 .asMap()
                 .containsKeys("email", "password", "name");
+    }
+
+    @Test
+    void 다른_회원을_조회하면_연락처를_뺀_공개_프로필만_보인다() throws Exception {
+        Long userId = registerAndGetId(uniqueEmail(), "김부모");
+
+        assertThat(mvc.get().uri("/api/users/{id}", userId).header(HttpHeaders.AUTHORIZATION, bearer(9_999L, "PARENT")))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$")
+                .asMap()
+                .containsEntry("name", "김부모")
+                .doesNotContainKeys("email", "phone", "address", "status");
+    }
+
+    @Test
+    void 정지된_회원은_공개_프로필도_조회되지_않는다() throws Exception {
+        Long userId = registerAndGetId(uniqueEmail(), "김부모");
+        User user = userRepository.findById(userId).orElseThrow();
+        user.setStatus(User.UserStatus.SUSPENDED);
+        userRepository.save(user);
+
+        assertThat(mvc.get().uri("/api/users/{id}", userId).header(HttpHeaders.AUTHORIZATION, bearer(9_999L, "PARENT")))
+                .hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void 전체_회원_목록은_관리자만_조회할_수_있다() {
+        register(uniqueEmail(), "password123", "김부모");
+
+        assertThat(mvc.get().uri("/api/users").header(HttpHeaders.AUTHORIZATION, bearer(9_999L, "PARENT")))
+                .hasStatus(HttpStatus.FORBIDDEN)
+                .bodyJson().extractingPath("$.message").isEqualTo("접근 권한이 없습니다.");
+
+        assertThat(mvc.get().uri("/api/users").header(HttpHeaders.AUTHORIZATION, bearer(1L, "ADMIN")))
+                .hasStatusOk()
+                .bodyJson().extractingPath("$[0].email").isNotNull();
+    }
+
+    @Test
+    void 비로그인_사용자는_회원을_조회할_수_없다() {
+        assertThat(mvc.get().uri("/api/users")).hasStatus(HttpStatus.UNAUTHORIZED);
+        assertThat(mvc.get().uri("/api/users/{id}", 1)).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    private Long registerAndGetId(String email, String name) throws Exception {
+        MvcTestResult result = register(email, "password123", name);
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+        return ((Number) JsonPath.read(result.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.id")).longValue();
+    }
+
+    private String bearer(Long userId, String role) {
+        return "Bearer " + jwtUtil.generateAccessToken(
+                new AuthUser(userId, "user" + userId + "@tspoon.com", "테스트", role));
     }
 
     private MvcTestResult register(String email, String password, String name) {

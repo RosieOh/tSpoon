@@ -7,6 +7,7 @@ import com.tspoon.core.security.AuthUser;
 import com.tspoon.userservice.dto.ChildResponse;
 import com.tspoon.userservice.dto.LoginRequest;
 import com.tspoon.userservice.dto.LoginResponse;
+import com.tspoon.userservice.dto.PublicUserResponse;
 import com.tspoon.userservice.dto.SignupRequest;
 import com.tspoon.userservice.dto.UpdateProfileRequest;
 import com.tspoon.userservice.dto.UserResponse;
@@ -90,9 +91,12 @@ public class UserService {
                 .toList();
     }
 
+    // 비활성·정지된 회원은 공개 프로필도 보여 주지 않는다
     @Transactional(readOnly = true)
-    public UserResponse getUserById(Long id) {
-        return UserResponse.from(findUser(id));
+    public PublicUserResponse getPublicProfile(Long id) {
+        return userRepository.findByIdAndStatus(id, User.UserStatus.ACTIVE)
+                .map(PublicUserResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
     }
 
     @Transactional(readOnly = true)
