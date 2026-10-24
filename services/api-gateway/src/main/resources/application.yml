@@ -150,3 +150,12 @@ management:
     health:
       probes:
         enabled: true
+  tracing:
+    sampling:
+      # 로컬·학습용으로 모든 요청을 추적한다. 운영에서는 낮춘다 (MANAGEMENT_TRACING_SAMPLING_PROBABILITY)
+      probability: 1.0
+  otlp:
+    metrics:
+      export:
+        # OTLP 수집기가 있을 때만 켠다 (compose.observability.yaml). 트레이스·로그는 주소를 줄 때만 내보낸다
+        enabled: false
