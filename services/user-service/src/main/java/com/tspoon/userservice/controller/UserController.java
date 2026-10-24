@@ -11,6 +11,10 @@ import com.tspoon.userservice.dto.SignupRequest;
 import com.tspoon.userservice.dto.UpdateProfileRequest;
 import com.tspoon.userservice.dto.UserResponse;
 import com.tspoon.userservice.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "회원", description = "가입·로그인·토큰 재발급·프로필")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -32,36 +37,45 @@ public class UserController {
 
     private final UserService userService;
 
+    @Operation(summary = "회원가입")
+    @SecurityRequirements
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody SignupRequest request) {
         UserResponse response = userService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Operation(summary = "로그인 — Access·Refresh Token 발급")
+    @SecurityRequirements
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(userService.login(request));
     }
 
+    @Operation(summary = "토큰 재발급 — Access·Refresh Token 을 둘 다 새로 받는다 (이전 Refresh 는 폐기)")
+    @SecurityRequirements
     @PostMapping("/token/refresh")
     public ResponseEntity<LoginResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(userService.refresh(request));
     }
 
+    @Operation(summary = "로그아웃 — Refresh 계열 폐기, 지금 Access Token 차단")
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @AuthenticationPrincipal AuthUser authUser,
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
+            @Parameter(hidden = true) @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
             @RequestBody(required = false) LogoutRequest request) {
         userService.logout(authUser.userId(), authorization.substring("Bearer ".length()), request);
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "내 정보")
     @GetMapping("/profile")
     public ResponseEntity<UserResponse> getProfile(@AuthenticationPrincipal AuthUser authUser) {
         return ResponseEntity.ok(userService.getProfile(authUser.userId()));
     }
 
+    @Operation(summary = "내 정보 수정")
     @PutMapping("/profile")
     public ResponseEntity<UserResponse> updateProfile(
             @AuthenticationPrincipal AuthUser authUser,
@@ -69,17 +83,20 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(authUser.userId(), request));
     }
 
+    @Operation(summary = "내 자녀 목록")
     @GetMapping("/children")
     public ResponseEntity<List<ChildResponse>> getChildren(@AuthenticationPrincipal AuthUser authUser) {
         return ResponseEntity.ok(userService.getChildren(authUser.userId()));
     }
 
+    @Operation(summary = "회원 공개 프로필 (연락처 제외)")
     @GetMapping("/{id}")
     public ResponseEntity<PublicUserResponse> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getPublicProfile(id));
     }
 
     // 연락처가 담긴 전체 목록이므로 관리자만
+    @Operation(summary = "전체 회원 목록 (관리자)")
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PagedModel<UserResponse>> getAllUsers(
