@@ -71,6 +71,23 @@ public class NotificationService {
         return ids;
     }
 
+    // 다른 서비스의 이벤트로 만드는 앱 내 알림 (DomainEventNotifier)
+    public Long createInApp(Long userId, String title, String content, Notification.NotificationType type,
+                            String actionUrl, String relatedEntityType, Long relatedEntityId) {
+        return notificationRepository.save(Notification.builder()
+                .userId(userId)
+                .title(title)
+                .content(content)
+                .type(type)
+                .channel(NotificationChannel.IN_APP)
+                .status(NotificationStatus.UNREAD)
+                .sentAt(Instant.now())
+                .actionUrl(actionUrl)
+                .relatedEntityType(relatedEntityType)
+                .relatedEntityId(relatedEntityId)
+                .build()).getId();
+    }
+
     @Transactional(readOnly = true)
     public Page<NotificationResponse> getMyNotifications(AuthUser user, boolean unreadOnly, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
