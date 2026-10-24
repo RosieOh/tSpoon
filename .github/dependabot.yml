@@ -1,0 +1,27 @@
+# 2024년 이후 방치돼 버전이 낡았던 것을 반복하지 않도록 매주 의존성 업데이트 PR 을 받는다.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [infra]
+    commit-message:
+      prefix: "CHORE :"
+    groups:
+      gradle-dependencies:
+        patterns: ["*"]
+    ignore:
+      # Spring Cloud 2026.0(Boot 4.1 지원)이 정식 출시될 때까지 Boot 4.0.x · Cloud 2025.1.x 를 유지한다 (#14)
+      - dependency-name: "org.springframework.boot*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.springframework.cloud:spring-cloud-dependencies"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [infra]
+    commit-message:
+      prefix: "CHORE :"
