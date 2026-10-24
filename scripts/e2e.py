@@ -151,6 +151,14 @@ def scenario_board():
     s2, _, _ = call("POST", f"/api/boards/{bid}/like", token=token)
     check("좋아요 200 · 중복 409", (s1, s2) == (200, 409), f"{s1} {s2}")
 
+    s, comment, _ = call("POST", f"/api/boards/{bid}/comments", {"content": "댓글입니다"}, token=token)
+    s2, _, _ = call("POST", f"/api/boards/{bid}/comments", {"content": "답글입니다", "parentCommentId": comment["id"]}, token=token)
+    s3, comments, _ = call("GET", f"/api/boards/{bid}/comments")
+    check("댓글 201 · 답글 201 · 답글이 댓글 아래로", (s, s2, s3) == (201, 201, 200)
+          and comments[0]["replies"][0]["content"] == "답글입니다", f"{s} {s2} {s3} {comments}")
+    _, after, _ = call("GET", f"/api/boards/{bid}")
+    check("게시글 댓글 수 2", after["commentCount"] == 2, after)
+
 
 def scenario_docs():
     print("[docs] Gateway 통합 API 문서")
