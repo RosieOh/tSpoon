@@ -49,4 +49,12 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE Board b SET b.likeCount = b.likeCount - 1 WHERE b.id = :id AND b.likeCount > 0")
     int decrementLikeCount(@Param("id") Long id);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Board b SET b.commentCount = b.commentCount + 1 WHERE b.id = :id")
+    int incrementCommentCount(@Param("id") Long id);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Board b SET b.commentCount = b.commentCount - 1 WHERE b.id = :id AND b.commentCount > 0")
+    int decrementCommentCount(@Param("id") Long id);
 }

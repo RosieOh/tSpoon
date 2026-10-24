@@ -65,7 +65,7 @@ public class BoardController {
         return ResponseEntity.ok(board);
     }
 
-    @Operation(summary = "게시글 삭제 (작성자만)")
+    @Operation(summary = "게시글 삭제 (작성자·관리자)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBoard(
             @AuthenticationPrincipal AuthUser authUser,
