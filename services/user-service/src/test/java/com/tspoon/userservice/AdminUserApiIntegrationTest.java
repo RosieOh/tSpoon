@@ -3,6 +3,7 @@ package com.tspoon.userservice;
 import com.jayway.jsonpath.JsonPath;
 import com.tspoon.auth.AuthUser;
 import com.tspoon.auth.jwt.JwtUtil;
+import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "tspoon.admin.password=" + AdminUserApiIntegrationTest.ADMIN_PASSWORD
 })
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, RedisTestcontainersConfiguration.class})
 class AdminUserApiIntegrationTest {
 
     static final String ADMIN_EMAIL = "admin@tspoon.com";

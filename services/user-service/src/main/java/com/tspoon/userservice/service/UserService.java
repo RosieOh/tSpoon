@@ -1,13 +1,13 @@
 package com.tspoon.userservice.service;
 
-import com.tspoon.auth.AuthUser;
-import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.exception.ResourceNotFoundException;
 import com.tspoon.userservice.dto.ChildResponse;
 import com.tspoon.userservice.dto.LoginRequest;
 import com.tspoon.userservice.dto.LoginResponse;
+import com.tspoon.userservice.dto.LogoutRequest;
 import com.tspoon.userservice.dto.PublicUserResponse;
+import com.tspoon.userservice.dto.RefreshTokenRequest;
 import com.tspoon.userservice.dto.SignupRequest;
 import com.tspoon.userservice.dto.UpdateProfileRequest;
 import com.tspoon.userservice.dto.UserResponse;
@@ -33,7 +33,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final TokenService tokenService;
 
     public UserResponse register(SignupRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -64,9 +64,24 @@ public class UserService {
             throw new BusinessException("비활성화된 계정입니다.", HttpStatus.FORBIDDEN);
         }
 
-        String accessToken = jwtUtil.generateAccessToken(
-                new AuthUser(user.getId(), user.getEmail(), user.getName(), user.getRole().name()));
-        return LoginResponse.of(accessToken, jwtUtil.getAccessTokenTtl().toSeconds(), user);
+        return LoginResponse.of(tokenService.startSession(user), user);
+    }
+
+    // 재발급 시점에 회원 정보를 다시 읽으므로 바뀐 역할·상태가 새 토큰에 반영된다
+    @Transactional(readOnly = true)
+    public LoginResponse refresh(RefreshTokenRequest request) {
+        TokenService.RefreshTokenOwner owner = tokenService.consume(request.refreshToken());
+        User user = findUser(owner.userId());
+
+        if (user.getStatus() != User.UserStatus.ACTIVE) {
+            tokenService.revokeAll(user.getId());
+            throw new BusinessException("비활성화된 계정입니다.", HttpStatus.FORBIDDEN);
+        }
+        return LoginResponse.of(tokenService.issue(user, owner.familyId()), user);
+    }
+
+    public void logout(Long userId, String accessToken, LogoutRequest request) {
+        tokenService.logout(userId, accessToken, request == null ? null : request.refreshToken());
     }
 
     @Transactional(readOnly = true)

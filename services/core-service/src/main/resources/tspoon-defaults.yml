@@ -38,4 +38,5 @@ tspoon:
   jwt:
     # 로컬 개발 전용 기본값. docker compose / 운영 환경에서는 환경변수 JWT_SECRET 으로 반드시 교체한다.
     secret: ${JWT_SECRET:local-dev-only-jwt-secret-change-me-0123456789}
-    access-token-ttl: 24h
+    access-token-ttl: 30m
+    refresh-token-ttl: 14d
