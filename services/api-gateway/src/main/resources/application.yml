@@ -46,7 +46,7 @@ spring:
             - id: notification-service
               uri: lb://notification-service
               predicates:
-                - Path=/api/notifications/**
+                - Path=/api/notifications/**,/api/admin/notifications/**
 
 
             # 서비스별 OpenAPI 문서 — 아래 springdoc.swagger-ui.urls 가 이 경로를 모아 보여 준다

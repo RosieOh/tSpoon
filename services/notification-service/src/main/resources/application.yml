@@ -7,19 +7,25 @@ spring:
     name: notification-service
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/notification_db
+  # 로컬·CI 는 docker compose 의 Mailpit(인증·TLS 없음, http://localhost:8025 에서 확인).
+  # 실제 SMTP(예: Gmail 587)는 환경변수로 바꾼다
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: 587
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: true
+          auth: ${MAIL_SMTP_AUTH:false}
           starttls:
-            enable: true
+            enable: ${MAIL_SMTP_STARTTLS:false}
 
-# 메일 발송 기능 구현 전까지 SMTP 헬스체크는 끈다 (자격증명 없이 켜두면 health 가 DOWN)
+tspoon:
+  notification:
+    mail-from: ${MAIL_FROM:no-reply@tspoon.local}
+
+# 메일 서버 상태가 서비스 준비 상태(health)를 좌우하지 않게 한다 — 발송 실패는 알림 상태(FAILED)로 남는다
 management:
   health:
     mail:
