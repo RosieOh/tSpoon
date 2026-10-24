@@ -7,6 +7,9 @@ import com.tspoon.core.test.TestcontainersConfiguration;
 import com.tspoon.notificationservice.entity.Notification;
 import com.tspoon.notificationservice.event.DomainEventListener;
 import com.tspoon.notificationservice.repository.NotificationRepository;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +20,7 @@ import org.testcontainers.kafka.KafkaContainer;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,6 +41,16 @@ class DomainEventConsumerIntegrationTest {
 
     @Autowired
     KafkaContainer kafka;
+
+    @Test
+    void 기동할_때_구독할_토픽을_먼저_만든다() throws Exception {
+        // 메시지 전송으로 자동 생성된 토픽은 파티션이 1개, 기동 시 선언으로 만든 토픽은 3개
+        try (AdminClient admin = AdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()))) {
+            Map<String, TopicDescription> topics = admin.describeTopics(
+                    List.of(DomainEventListener.COMMUNITY_TOPIC, DomainEventListener.QNA_TOPIC)).allTopicNames().get();
+            assertThat(topics.values()).allSatisfy(topic -> assertThat(topic.partitions()).hasSize(3));
+        }
+    }
 
     @Test
     void 남의_게시글에_댓글이_달리면_게시글_작성자에게_알림이_간다() {
