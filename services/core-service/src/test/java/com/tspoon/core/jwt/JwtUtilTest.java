@@ -1,0 +1,65 @@
+package com.tspoon.core.jwt;
+
+import com.tspoon.core.security.AuthUser;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class JwtUtilTest {
+
+    private static final String SECRET = "test-secret-key-for-jwt-util-0123456789";
+    private static final AuthUser USER = new AuthUser(42L, "parent@tspoon.com", "김부모", "PARENT");
+
+    private final JwtUtil jwtUtil = new JwtUtil(new JwtProperties(SECRET, "tspoon", Duration.ofHours(1)));
+
+    @Test
+    void 발급한_토큰에서_사용자_정보를_복원한다() {
+        String token = jwtUtil.generateAccessToken(USER);
+
+        assertThat(jwtUtil.parseAccessToken(token)).contains(USER);
+    }
+
+    @Test
+    void 서명이_변조된_토큰은_거부한다() {
+        String token = jwtUtil.generateAccessToken(USER);
+        String tampered = token.substring(0, token.length() - 2) + (token.endsWith("AA") ? "BB" : "AA");
+
+        assertThat(jwtUtil.parseAccessToken(tampered)).isEmpty();
+    }
+
+    @Test
+    void 다른_키로_서명된_토큰은_거부한다() {
+        JwtUtil other = new JwtUtil(new JwtProperties("another-secret-key-for-jwt-0123456789", "tspoon", Duration.ofHours(1)));
+
+        assertThat(jwtUtil.parseAccessToken(other.generateAccessToken(USER))).isEmpty();
+    }
+
+    @Test
+    void 발급자가_다른_토큰은_거부한다() {
+        JwtUtil other = new JwtUtil(new JwtProperties(SECRET, "someone-else", Duration.ofHours(1)));
+
+        assertThat(jwtUtil.parseAccessToken(other.generateAccessToken(USER))).isEmpty();
+    }
+
+    @Test
+    void 만료된_토큰은_거부한다() {
+        JwtUtil expired = new JwtUtil(new JwtProperties(SECRET, "tspoon", Duration.ofSeconds(-1)));
+
+        assertThat(jwtUtil.parseAccessToken(expired.generateAccessToken(USER))).isEmpty();
+    }
+
+    @Test
+    void 형식이_잘못된_토큰은_거부한다() {
+        assertThat(jwtUtil.parseAccessToken("not-a-jwt")).isEmpty();
+        assertThat(jwtUtil.parseAccessToken("")).isEmpty();
+    }
+
+    @Test
+    void 비밀키가_256비트보다_짧으면_기동_시점에_실패한다() {
+        assertThatThrownBy(() -> new JwtProperties("too-short", "tspoon", Duration.ofHours(1)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+}
