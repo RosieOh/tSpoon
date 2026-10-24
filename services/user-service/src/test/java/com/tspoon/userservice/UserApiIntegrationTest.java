@@ -60,7 +60,8 @@ class UserApiIntegrationTest {
     void 토큰_없이_보호된_API를_호출하면_401() {
         assertThat(mvc.get().uri("/api/users/profile"))
                 .hasStatus(HttpStatus.UNAUTHORIZED)
-                .bodyJson().extractingPath("$.success").isEqualTo(false);
+                .hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .bodyJson().extractingPath("$.detail").isEqualTo("인증이 필요합니다.");
     }
 
     @Test
@@ -96,7 +97,7 @@ class UserApiIntegrationTest {
         assertThat(register("not-an-email", "short", ""))
                 .hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson()
-                .extractingPath("$.data")
+                .extractingPath("$.errors")
                 .asMap()
                 .containsKeys("email", "password", "name");
     }
@@ -131,11 +132,11 @@ class UserApiIntegrationTest {
 
         assertThat(mvc.get().uri("/api/users").header(HttpHeaders.AUTHORIZATION, bearer(9_999L, "PARENT")))
                 .hasStatus(HttpStatus.FORBIDDEN)
-                .bodyJson().extractingPath("$.message").isEqualTo("접근 권한이 없습니다.");
+                .bodyJson().extractingPath("$.detail").isEqualTo("접근 권한이 없습니다.");
 
         assertThat(mvc.get().uri("/api/users").header(HttpHeaders.AUTHORIZATION, bearer(1L, "ADMIN")))
                 .hasStatusOk()
-                .bodyJson().extractingPath("$[0].email").isNotNull();
+                .bodyJson().extractingPath("$.content[0].email").isNotNull();
     }
 
     @Test

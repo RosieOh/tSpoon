@@ -2,7 +2,7 @@ package com.tspoon.userservice.dto;
 
 import com.tspoon.userservice.entity.User;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record UserResponse(
         Long id,
@@ -12,8 +12,8 @@ public record UserResponse(
         String address,
         User.UserRole role,
         User.UserStatus status,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
 
     public static UserResponse from(User user) {

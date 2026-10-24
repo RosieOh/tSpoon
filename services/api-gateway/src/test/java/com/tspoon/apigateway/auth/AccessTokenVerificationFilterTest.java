@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -131,7 +132,8 @@ class AccessTokenVerificationFilterTest {
     private void assertRejected(MockServerWebExchange exchange, String message) {
         assertThat(passed).isFalse();
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(exchange.getResponse().getBodyAsString().block()).contains("\"success\":false").contains(message);
+        assertThat(exchange.getResponse().getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(exchange.getResponse().getBodyAsString().block()).contains("\"status\":401").contains("\"detail\":\"" + message);
     }
 
     private static MockServerWebExchange exchange(String path, String token) {

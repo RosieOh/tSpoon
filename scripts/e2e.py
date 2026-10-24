@@ -74,8 +74,9 @@ def scenario_auth():
     uid, email, token = signup_login("E2E부모")
     s, body, _ = call("GET", "/api/users/profile", token=token)
     check("프로필 200, 한글 이름 보존", s == 200 and body["name"] == "E2E부모", f"{s} {body}")
-    s, _, _ = call("GET", "/api/users/profile", token="1_1700000000000")
-    check("위조 토큰 401", s == 401, s)
+    s, body, headers = call("GET", "/api/users/profile", token="1_1700000000000")
+    check("위조 토큰 401 (ProblemDetail)", s == 401 and headers.get("Content-Type", "").startswith("application/problem+json")
+          and body.get("status") == 401, f"{s} {headers.get('Content-Type')} {body}")
 
 
 def scenario_roles():
@@ -143,6 +144,9 @@ def scenario_board():
     call("GET", f"/api/boards/{bid}")
     s, body, _ = call("GET", f"/api/boards/{bid}")
     check("조회수 2", s == 200 and body["viewCount"] == 2, f"{s} {body}")
+    check("생성 시각에 시간대(Z)", board["createdAt"].endswith("Z"), board["createdAt"])
+    s, page, _ = call("GET", "/api/boards?size=1")
+    check("목록에 페이지 정보", s == 200 and len(page["content"]) == 1 and page["page"]["size"] == 1, f"{s} {page}")
     s1, _, _ = call("POST", f"/api/boards/{bid}/like", token=token)
     s2, _, _ = call("POST", f"/api/boards/{bid}/like", token=token)
     check("좋아요 200 · 중복 409", (s1, s2) == (200, 409), f"{s1} {s2}")
