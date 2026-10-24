@@ -212,7 +212,10 @@ services:
       <<: *domain-service-env
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
-    depends_on: *domain-service-depends-on
+    depends_on:
+      <<: *domain-service-depends-on
+      kafka:
+        condition: service_healthy
 
 volumes:
   postgres-data:
