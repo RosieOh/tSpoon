@@ -1,0 +1,43 @@
+# 로컬 kind 클러스터용 — deploy/kind/up.sh 가 적용한다
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# 로컬 전용 값. 실제 환경에서는 Secret 을 외부 비밀 저장소(예: External Secrets)에서 만든다
+secretGenerator:
+  - name: tspoon-secrets
+    namespace: tspoon
+    literals:
+      - DB_USERNAME=tspoon
+      - DB_PASSWORD=tspoon
+      - JWT_SECRET=kind-local-only-jwt-secret-not-for-production-0123456789
+  - name: tspoon-admin
+    namespace: tspoon
+    literals:
+      - ADMIN_EMAIL=admin@tspoon.local
+      - ADMIN_PASSWORD=change-me-admin-password
+
+# kind 노드의 NodePort 를 deploy/kind/cluster.yaml 이 호스트 포트로 연결한다
+patches:
+  - target:
+      kind: Service
+      name: api-gateway
+    patch: |
+      - op: add
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30080
+  - target:
+      kind: Service
+      name: mailpit
+    patch: |
+      - op: add
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/1/nodePort
+        value: 30025

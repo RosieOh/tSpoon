@@ -3,7 +3,8 @@
 사용: docker compose up -d --build --wait 후
       python3 scripts/e2e.py [시나리오...]      (시나리오를 생략하면 전부)
 
-환경변수: E2E_GATEWAY(기본 http://localhost:8080), E2E_MAILPIT(기본 http://localhost:8025), ADMIN_EMAIL, ADMIN_PASSWORD(compose 에 넘긴 값과 같아야 함)
+환경변수: E2E_GATEWAY(기본 http://localhost:8080), E2E_MAILPIT(기본 http://localhost:8025),
+         E2E_PLATFORM(compose | kubernetes — 서비스를 멈췄다 켜는 시나리오에서 씀), ADMIN_EMAIL, ADMIN_PASSWORD(compose 에 넘긴 값과 같아야 함)
 외부 패키지 없이 표준 라이브러리만 쓴다.
 """
 import json
@@ -17,6 +18,7 @@ import uuid
 
 GATEWAY = os.environ.get("E2E_GATEWAY", "http://localhost:8080")
 MAILPIT = os.environ.get("E2E_MAILPIT", "http://localhost:8025")
+PLATFORM = os.environ.get("E2E_PLATFORM", "compose")  # compose | kubernetes (kind)
 ADMIN = (os.environ.get("ADMIN_EMAIL", "admin@tspoon.local"),
          os.environ.get("ADMIN_PASSWORD", "change-me-admin-password"))
 results = []
@@ -282,6 +284,28 @@ def scenario_domain_events():
           f"{unread_count(asker, 1, 1)} {unread_count(expert, 1, 1)}")
 
 
+KUBECTL = ["kubectl", "--context", "kind-tspoon", "-n", "tspoon"]
+
+
+def stop_notification_service():
+    if PLATFORM == "kubernetes":
+        subprocess.run(KUBECTL + ["scale", "deployment/notification-service", "--replicas=0"], check=True, capture_output=True)
+        subprocess.run(KUBECTL + ["wait", "--for=delete", "pod", "-l", "app=notification-service", "--timeout=120s"],
+                       check=True, capture_output=True)
+    else:
+        subprocess.run(["docker", "compose", "stop", "notification-service"], check=True, capture_output=True)
+
+
+def start_notification_service():
+    if PLATFORM == "kubernetes":
+        subprocess.run(KUBECTL + ["scale", "deployment/notification-service", "--replicas=1"], check=True, capture_output=True)
+        subprocess.run(KUBECTL + ["rollout", "status", "deployment/notification-service", "--timeout=300s"],
+                       check=True, capture_output=True)
+    else:
+        subprocess.run(["docker", "compose", "start", "notification-service"], check=True, capture_output=True)
+        subprocess.run(["docker", "compose", "up", "-d", "--wait", "notification-service"], check=True, capture_output=True)
+
+
 def scenario_outbox_resilience():
     """알림 서비스가 멈춘 동안의 이벤트도 다시 켜면 알림이 된다 (#20 완료 기준). docker compose 를 직접 다룬다."""
     print("[outbox-resilience] 알림 서비스 중단 → 댓글 → 재시작")
@@ -289,13 +313,12 @@ def scenario_outbox_resilience():
     _, _, commenter = signup_login("중단중댓글")
     _, board, _ = call("POST", "/api/boards", {"title": "중단 중 댓글", "content": "본문", "category": "GENERAL"}, token=writer)
 
-    subprocess.run(["docker", "compose", "stop", "notification-service"], check=True, capture_output=True)
+    stop_notification_service()
     try:
         s, _, _ = call("POST", f"/api/boards/{board['id']}/comments", {"content": "멈춘 사이 댓글"}, token=commenter)
         check("알림 서비스가 멈춰도 댓글 작성 201", s == 201, s)
     finally:
-        subprocess.run(["docker", "compose", "start", "notification-service"], check=True, capture_output=True)
-        subprocess.run(["docker", "compose", "up", "-d", "--wait", "notification-service"], check=True, capture_output=True)
+        start_notification_service()
     check("재시작 뒤 놓친 알림 도착", unread_count(writer, 1, timeout=90) == 1, unread_count(writer, 1, 1))
 
 

@@ -1,0 +1,80 @@
+# community-service — 게시판·댓글 (이벤트 발행)
+apiVersion: v1
+kind: Service
+metadata:
+  name: community-service
+  labels:
+    app: community-service
+spec:
+  selector:
+    app: community-service
+  ports:
+    - name: http
+      port: 8082
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: community-service
+  labels:
+    app: community-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: community-service
+  template:
+    metadata:
+      labels:
+        app: community-service
+    spec:
+      # Service 마다 자동으로 들어오는 REDIS_PORT=tcp://… 같은 변수가 앱 설정(REDIS_PORT 등)을 덮어쓰지 않게 한다
+      enableServiceLinks: false
+      initContainers:
+        # 의존 서비스가 받을 준비가 될 때까지 기다려 기동 실패·재시작 반복을 줄인다
+        - name: wait-for-dependencies
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - |
+              for dep in postgres:5432 kafka:9092; do
+                until nc -z "${dep%:*}" "${dep#*:}"; do echo "waiting for $dep"; sleep 2; done
+              done
+      containers:
+        - name: app
+          image: tspoon/community-service
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: tspoon-config
+            - secretRef:
+                name: tspoon-secrets
+          # Spring Boot Actuator 프로브 (기동이 끝날 때까지는 startupProbe 만 본다)
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              memory: 512Mi

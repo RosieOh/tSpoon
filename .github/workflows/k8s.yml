@@ -1,0 +1,68 @@
+name: Kubernetes (kind)
+
+# 리소스가 많이 들어 배포 매니페스트가 바뀐 PR 과 수동 실행 때만 돈다 (필수 체크 아님)
+on:
+  pull_request:
+    paths:
+      - "deploy/**"
+      - ".github/workflows/k8s.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: k8s-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  kind-e2e:
+    name: kind-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      E2E_GATEWAY: http://localhost:18080
+      E2E_MAILPIT: http://localhost:18025
+      E2E_PLATFORM: kubernetes
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Install kind
+        run: |
+          curl -sSLo kind https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64
+          echo "aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d  kind" | sha256sum -c -
+          sudo install kind /usr/local/bin/kind
+
+      # 클러스터 생성 → jar·이미지 빌드 → kind 에 이미지 적재 → 매니페스트 적용 → 롤아웃 대기
+      - name: Deploy to kind
+        run: deploy/kind/up.sh
+
+      - name: Run E2E through API Gateway
+        run: python3 scripts/e2e.py
+
+      - name: Run outbox resilience scenario
+        run: python3 scripts/e2e.py outbox-resilience
+
+      - name: Collect cluster state
+        if: failure()
+        run: |
+          kubectl --context kind-tspoon -n tspoon get pods -o wide > cluster.log
+          kubectl --context kind-tspoon -n tspoon describe pods >> cluster.log
+          for d in $(kubectl --context kind-tspoon -n tspoon get deploy -o name); do
+            echo "===== $d" >> cluster.log
+            kubectl --context kind-tspoon -n tspoon logs "$d" --all-containers --tail=200 >> cluster.log || true
+          done
+
+      - name: Upload cluster state
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: kind-cluster-state
+          path: cluster.log
+          retention-days: 7

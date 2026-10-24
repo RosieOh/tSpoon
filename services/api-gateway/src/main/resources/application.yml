@@ -17,76 +17,77 @@ spring:
       server:
         webflux:
           # 각 서비스 컨트롤러가 /api/** 로 매핑되어 있으므로 경로를 그대로 전달한다 (StripPrefix 사용 안 함)
+          # 주소 기본값은 Eureka(lb://). Kubernetes 에서는 USER_SERVICE_URI=http://user-service:8081 처럼 Service DNS 로 바꾼다
           routes:
             - id: user-service
-              uri: lb://user-service
+              uri: ${USER_SERVICE_URI:lb://user-service}
               predicates:
                 - Path=/api/users/**,/api/admin/users/**
 
             - id: community-service
-              uri: lb://community-service
+              uri: ${COMMUNITY_SERVICE_URI:lb://community-service}
               predicates:
                 - Path=/api/boards/**,/api/comments/**,/api/likes/**
 
             - id: education-service
-              uri: lb://education-service
+              uri: ${EDUCATION_SERVICE_URI:lb://education-service}
               predicates:
                 - Path=/api/contents/**
 
             - id: qna-service
-              uri: lb://qna-service
+              uri: ${QNA_SERVICE_URI:lb://qna-service}
               predicates:
                 - Path=/api/questions/**,/api/answers/**
 
             - id: event-service
-              uri: lb://event-service
+              uri: ${EVENT_SERVICE_URI:lb://event-service}
               predicates:
                 - Path=/api/events/**,/api/notices/**
 
             - id: notification-service
-              uri: lb://notification-service
+              uri: ${NOTIFICATION_SERVICE_URI:lb://notification-service}
               predicates:
                 - Path=/api/notifications/**,/api/admin/notifications/**
 
 
             # 서비스별 OpenAPI 문서 — 아래 springdoc.swagger-ui.urls 가 이 경로를 모아 보여 준다
             - id: user-service-docs
-              uri: lb://user-service
+              uri: ${USER_SERVICE_URI:lb://user-service}
               predicates:
                 - Path=/docs/user-service/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: community-service-docs
-              uri: lb://community-service
+              uri: ${COMMUNITY_SERVICE_URI:lb://community-service}
               predicates:
                 - Path=/docs/community-service/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: education-service-docs
-              uri: lb://education-service
+              uri: ${EDUCATION_SERVICE_URI:lb://education-service}
               predicates:
                 - Path=/docs/education-service/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: qna-service-docs
-              uri: lb://qna-service
+              uri: ${QNA_SERVICE_URI:lb://qna-service}
               predicates:
                 - Path=/docs/qna-service/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: event-service-docs
-              uri: lb://event-service
+              uri: ${EVENT_SERVICE_URI:lb://event-service}
               predicates:
                 - Path=/docs/event-service/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
             - id: notification-service-docs
-              uri: lb://notification-service
+              uri: ${NOTIFICATION_SERVICE_URI:lb://notification-service}
               predicates:
                 - Path=/docs/notification-service/v3/api-docs
               filters:
