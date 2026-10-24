@@ -1,0 +1,18 @@
+// 실행 가능한 Spring Boot 애플리케이션 (Gateway, Eureka 등 인프라 서비스 포함)
+plugins {
+    id 'tspoon.java-conventions'
+    id 'org.springframework.boot'
+}
+
+springBoot {
+    buildInfo()
+}
+
+// plain jar를 만들지 않아야 build/libs 에 실행 jar 하나만 남는다 (Dockerfile에서 COPY)
+tasks.named('jar') {
+    enabled = false
+}
+
+tasks.named('bootJar') {
+    archiveFileName = "${project.name}.jar"
+}

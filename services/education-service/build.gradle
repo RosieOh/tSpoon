@@ -1,2 +1,3 @@
-// Education Service는 공통 의존성만 사용
-// 추가 특화 의존성이 필요한 경우 여기에 추가
+plugins {
+    id 'tspoon.domain-service'
+}
