@@ -17,6 +17,9 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "org.springframework.cloud:spring-cloud-dependencies"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # springdoc 3.1.x 는 Boot 4.1 용 (3.0.x 가 Boot 4.0 용)
+      - dependency-name: "org.springdoc*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       # Spring Boot BOM 이 관리하는 OpenTelemetry SDK 버전에 맞춰 둔다 (Boot 를 올릴 때 함께 올린다)
       - dependency-name: "io.opentelemetry.instrumentation*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
