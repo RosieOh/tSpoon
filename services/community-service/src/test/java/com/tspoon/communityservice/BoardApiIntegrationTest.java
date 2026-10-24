@@ -3,6 +3,7 @@ package com.tspoon.communityservice;
 import com.jayway.jsonpath.JsonPath;
 import com.tspoon.core.jwt.JwtUtil;
 import com.tspoon.core.security.AuthUser;
+import com.tspoon.core.test.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

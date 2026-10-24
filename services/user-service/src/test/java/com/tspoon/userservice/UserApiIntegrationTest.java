@@ -3,6 +3,7 @@ package com.tspoon.userservice;
 import com.jayway.jsonpath.JsonPath;
 import com.tspoon.core.jwt.JwtUtil;
 import com.tspoon.core.security.AuthUser;
+import com.tspoon.core.test.TestcontainersConfiguration;
 import com.tspoon.userservice.entity.User;
 import com.tspoon.userservice.repository.UserRepository;
 import org.junit.jupiter.api.Test;
