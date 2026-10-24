@@ -17,7 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +27,7 @@ public class BoardService {
     private final BoardLikeRepository boardLikeRepository;
 
     @Transactional(readOnly = true)
-    public List<BoardResponse> getAllBoards(int page, int size, Board.BoardCategory category) {
+    public Page<BoardResponse> getAllBoards(int page, int size, Board.BoardCategory category) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Board> boards;
 
@@ -40,9 +39,7 @@ public class BoardService {
                     Board.BoardStatus.ACTIVE, pageable);
         }
 
-        return boards.getContent().stream()
-                .map(BoardResponse::from)
-                .toList();
+        return boards.map(BoardResponse::from);
     }
 
     // 조회수 증가(쓰기)가 있으므로 readOnly 트랜잭션이면 안 된다

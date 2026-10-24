@@ -12,7 +12,10 @@ import com.tspoon.userservice.dto.UpdateProfileRequest;
 import com.tspoon.userservice.dto.UserResponse;
 import com.tspoon.userservice.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -79,10 +82,10 @@ public class UserController {
     // 연락처가 담긴 전체 목록이므로 관리자만
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<UserResponse>> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        List<UserResponse> users = userService.getAllUsers(page, size);
-        return ResponseEntity.ok(users);
+    public ResponseEntity<PagedModel<UserResponse>> getAllUsers(
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "page 는 0 이상이어야 합니다") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "size 는 1 이상이어야 합니다")
+            @Max(value = 100, message = "size 는 100 이하여야 합니다") int size) {
+        return ResponseEntity.ok(new PagedModel<>(userService.getAllUsers(page, size)));
     }
 }

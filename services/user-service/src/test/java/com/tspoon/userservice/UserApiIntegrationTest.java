@@ -136,7 +136,7 @@ class UserApiIntegrationTest {
 
         assertThat(mvc.get().uri("/api/users").header(HttpHeaders.AUTHORIZATION, bearer(1L, "ADMIN")))
                 .hasStatusOk()
-                .bodyJson().extractingPath("$[0].email").isNotNull();
+                .bodyJson().extractingPath("$.content[0].email").isNotNull();
     }
 
     @Test

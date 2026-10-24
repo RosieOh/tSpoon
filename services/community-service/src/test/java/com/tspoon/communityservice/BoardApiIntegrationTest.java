@@ -96,6 +96,30 @@ class BoardApiIntegrationTest {
     }
 
     @Test
+    void 목록은_페이지_정보와_함께_내려온다() {
+        String author = bearer(3L, "목록작성자");
+        for (int i = 0; i < 3; i++) {
+            mvc.post().uri("/api/boards").header(HttpHeaders.AUTHORIZATION, author)
+                    .contentType(MediaType.APPLICATION_JSON).content(BOARD_JSON).exchange();
+        }
+
+        MvcTestResult page = mvc.get().uri("/api/boards").param("page", "0").param("size", "2").exchange();
+
+        assertThat(page).hasStatusOk().bodyJson().extractingPath("$.content.length()").isEqualTo(2);
+        assertThat(page).bodyJson().extractingPath("$.page.size").isEqualTo(2);
+        assertThat(page).bodyJson().extractingPath("$.page.number").isEqualTo(0);
+        assertThat(page).bodyJson().extractingPath("$.page.totalElements").asNumber().satisfies(n -> assertThat(n.intValue()).isGreaterThanOrEqualTo(3));
+    }
+
+    @Test
+    void 페이지_크기가_범위를_벗어나면_항목별_메시지와_함께_400() {
+        assertThat(mvc.get().uri("/api/boards").param("size", "1000"))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .hasContentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .bodyJson().extractingPath("$.errors.size").isEqualTo("size 는 100 이하여야 합니다");
+    }
+
+    @Test
     void 에러는_ProblemDetail_형식이고_표준_예외도_한국어로_설명한다() {
         assertThat(mvc.get().uri("/api/boards").param("category", "NOT_A_CATEGORY"))
                 .hasStatus(HttpStatus.BAD_REQUEST)

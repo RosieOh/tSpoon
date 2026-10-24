@@ -6,13 +6,15 @@ import com.tspoon.communityservice.dto.BoardResponse;
 import com.tspoon.communityservice.entity.Board;
 import com.tspoon.communityservice.service.BoardService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/boards")
@@ -22,12 +24,12 @@ public class BoardController {
     private final BoardService boardService;
 
     @GetMapping
-    public ResponseEntity<List<BoardResponse>> getAllBoards(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+    public ResponseEntity<PagedModel<BoardResponse>> getAllBoards(
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "page 는 0 이상이어야 합니다") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "size 는 1 이상이어야 합니다")
+            @Max(value = 100, message = "size 는 100 이하여야 합니다") int size,
             @RequestParam(required = false) Board.BoardCategory category) {
-        List<BoardResponse> boards = boardService.getAllBoards(page, size, category);
-        return ResponseEntity.ok(boards);
+        return ResponseEntity.ok(new PagedModel<>(boardService.getAllBoards(page, size, category)));
     }
 
     @GetMapping("/{id}")
