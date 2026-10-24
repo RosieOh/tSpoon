@@ -8,6 +8,13 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/qna_db
 
+tspoon:
+  security:
+    # 질문 목록·상세(답변 포함)만 공개
+    public-get-paths:
+      - /api/questions
+      - /api/questions/*
+
 logging:
   level:
     com.tspoon: DEBUG
