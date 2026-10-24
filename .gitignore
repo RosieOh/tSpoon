@@ -83,8 +83,6 @@ application-local.yml
 application-dev.yml
 application-prod.yml
 
-# Docker
-.dockerignore
 
 # Temporary files
 *.tmp

@@ -1,0 +1,40 @@
+# 도메인 서비스 공통 기본값 (우선순위 최하위)
+# 각 서비스 application.yml 이나 환경변수에 같은 키가 있으면 그 값이 우선한다.
+spring:
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    username: ${DB_USERNAME:tspoon}
+    password: ${DB_PASSWORD:tspoon}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+  autoconfigure:
+    exclude:
+      # JWT 로만 인증하므로 Boot 가 만드는 기본 in-memory 사용자(랜덤 비밀번호)는 필요 없다
+      - org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+tspoon:
+  jwt:
+    # 로컬 개발 전용 기본값. docker compose / 운영 환경에서는 환경변수 JWT_SECRET 으로 반드시 교체한다.
+    secret: ${JWT_SECRET:local-dev-only-jwt-secret-change-me-0123456789}
+    access-token-ttl: 24h

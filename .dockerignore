@@ -1,0 +1,4 @@
+# 이미지에는 미리 빌드한 jar 와 docker/ 스크립트만 필요하다 (빌드 컨텍스트 최소화)
+**
+!services/*/build/libs/*.jar
+!docker/healthcheck.sh

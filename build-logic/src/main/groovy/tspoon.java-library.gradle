@@ -1,0 +1,5 @@
+// 실행 가능한 앱이 아닌 공유 라이브러리 모듈 (bootJar 없음)
+plugins {
+    id 'tspoon.java-conventions'
+    id 'java-library'
+}

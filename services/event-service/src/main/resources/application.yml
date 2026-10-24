@@ -1,3 +1,4 @@
+# 공통 기본값(가상 스레드, JPA, Eureka, Actuator, JWT)은 core-service 의 tspoon-defaults.yml 참고
 server:
   port: 8085
 
@@ -5,39 +6,8 @@ spring:
   application:
     name: event-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/tspoon
-    username: root
-    password: 1234
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  cloud:
-    config:
-      enabled: false
-      import-check:
-        enabled: false
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    prefer-ip-address: true
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/event_db
 
 logging:
   level:
-    com.tspoon.eventservice: DEBUG
+    com.tspoon: DEBUG

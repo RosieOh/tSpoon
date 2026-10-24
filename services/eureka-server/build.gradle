@@ -1,4 +1,8 @@
-// Eureka Server 특화 의존성
+plugins {
+    id 'tspoon.spring-boot-app'
+}
+
 dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }

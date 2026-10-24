@@ -1,23 +1,25 @@
+pluginManagement {
+    includeBuild 'build-logic'
+}
+
+plugins {
+    // 로컬에 JDK 25가 없으면 Gradle이 자동으로 내려받는다
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 rootProject.name = 'tspoon-msa'
 
-// 서비스 모듈들
+// 공유 라이브러리
 include 'services:core-service'
+
+// 인프라
+include 'services:eureka-server'
+include 'services:api-gateway'
+
+// 도메인 서비스
 include 'services:user-service'
 include 'services:community-service'
 include 'services:education-service'
 include 'services:qna-service'
 include 'services:event-service'
 include 'services:notification-service'
-include 'services:api-gateway'
-include 'services:eureka-server'
-
-// 각 서비스의 프로젝트 이름 설정
-project(':services:core-service').name = 'core-service'
-project(':services:user-service').name = 'user-service'
-project(':services:community-service').name = 'community-service'
-project(':services:education-service').name = 'education-service'
-project(':services:qna-service').name = 'qna-service'
-project(':services:event-service').name = 'event-service'
-project(':services:notification-service').name = 'notification-service'
-project(':services:api-gateway').name = 'api-gateway'
-project(':services:eureka-server').name = 'eureka-server'

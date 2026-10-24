@@ -1,4 +1,7 @@
-// Notification Service 특화 의존성
+plugins {
+    id 'tspoon.domain-service'
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mail'
 }

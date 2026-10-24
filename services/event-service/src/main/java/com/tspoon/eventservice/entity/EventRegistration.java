@@ -1,10 +1,12 @@
 package com.tspoon.eventservice.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -15,10 +17,11 @@ import java.time.LocalDateTime;
 @Table(name = "event_registrations", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"event_id", "user_id"})
 })
-@Data
+@Getter
+@Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(AuditingEntityListener.class)
 public class EventRegistration {
     
@@ -36,6 +39,7 @@ public class EventRegistration {
     @Column(nullable = false)
     private String userName; // 사용자 이름 (캐시용)
     
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RegistrationStatus status = RegistrationStatus.REGISTERED;
