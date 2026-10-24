@@ -160,6 +160,34 @@ def scenario_board():
     check("게시글 댓글 수 2", after["commentCount"] == 2, after)
 
 
+def promote(role):
+    """관리자가 새 회원의 역할을 바꾸고, 그 회원이 재발급받은 (새 역할이 담긴) 토큰을 돌려준다."""
+    uid, email, _ = signup_login(f"{role}회원")
+    s, _, _ = call("PATCH", f"/api/admin/users/{uid}/role", {"role": role}, token=admin_token())
+    assert s == 200, s
+    _, login, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    return uid, login["accessToken"]
+
+
+def scenario_education():
+    print("[education] 교사 콘텐츠·북마크 (역할 변경 → 다른 서비스 권한)")
+    _, parent = signup_login("학부모")[::2]
+    content = {"title": "E2E 교육 콘텐츠", "description": "설명", "type": "ARTICLE", "category": "MATH", "draft": False}
+    s, _, _ = call("POST", "/api/contents", content, token=parent)
+    check("학부모의 콘텐츠 작성 403", s == 403, s)
+
+    _, teacher = promote("TEACHER")
+    s, created, _ = call("POST", "/api/contents", content, token=teacher)
+    check("교사로 바뀐 회원의 콘텐츠 작성 201", s == 201, f"{s} {created}")
+    cid = created["id"]
+    s, page, _ = call("GET", "/api/contents?category=MATH")
+    check("비로그인 목록에 노출", s == 200 and any(c["id"] == cid for c in page["content"]), s)
+
+    s1, _, _ = call("POST", f"/api/contents/{cid}/bookmark", token=parent)
+    s2, mine, _ = call("GET", "/api/contents/bookmarks/me", token=parent)
+    check("북마크 200 · 내 북마크에 노출", s1 == 200 and s2 == 200 and mine["content"][0]["id"] == cid, f"{s1} {s2}")
+
+
 def scenario_docs():
     print("[docs] Gateway 통합 API 문서")
     s, config, _ = call("GET", "/v3/api-docs/swagger-config")
@@ -177,6 +205,7 @@ SCENARIOS = {
     "tokens": scenario_tokens,
     "privacy": scenario_privacy,
     "board": scenario_board,
+    "education": scenario_education,
     "docs": scenario_docs,
 }
 
