@@ -3,6 +3,7 @@ package com.tspoon.core.autoconfigure;
 import com.tspoon.auth.jwt.JwtProperties;
 import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.exception.GlobalExceptionHandler;
+import com.tspoon.core.openapi.OpenApiConfig;
 import com.tspoon.core.security.SecurityConfig;
 import com.tspoon.core.security.TspoonSecurityProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -20,7 +21,7 @@ import org.springframework.context.annotation.Import;
  */
 @AutoConfiguration(before = ServletWebSecurityAutoConfiguration.class)
 @EnableConfigurationProperties({JwtProperties.class, TspoonSecurityProperties.class})
-@Import({SecurityConfig.class, GlobalExceptionHandler.class})
+@Import({SecurityConfig.class, GlobalExceptionHandler.class, OpenApiConfig.class})
 public class TspoonCoreAutoConfiguration {
 
     @Bean

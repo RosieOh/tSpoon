@@ -50,6 +50,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers("/actuator/health/**", "/actuator/info").permitAll();
                 auth.requestMatchers("/error").permitAll();
+                auth.requestMatchers("/v3/api-docs/**").permitAll(); // 외부에서는 Gateway 의 문서 라우트로만 닿는다
                 properties.publicPaths().forEach(path -> auth.requestMatchers(path).permitAll());
                 properties.publicGetPaths().forEach(path -> auth.requestMatchers(HttpMethod.GET, path).permitAll());
                 auth.requestMatchers("/api/admin/**").hasRole("ADMIN");

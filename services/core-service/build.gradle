@@ -13,6 +13,9 @@ dependencies {
     // JWT 발급·검증 (api-gateway 와 같은 구현을 쓴다)
     api project(':services:auth-support')
 
+    // 서비스별 OpenAPI 문서(/v3/api-docs). Swagger UI 는 api-gateway 에서 모아 보여 준다
+    api libs.springdoc.webmvc.api
+
     annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
