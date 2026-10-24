@@ -1,10 +1,12 @@
 package com.tspoon.communityservice.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -15,10 +17,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "TBL_BOARD")
-@Data
+@Getter
+@Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(AuditingEntityListener.class)
 public class Board {
     
@@ -42,6 +45,7 @@ public class Board {
     @Column(nullable = false)
     private BoardCategory category;
     
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BoardStatus status = BoardStatus.ACTIVE;

@@ -1,10 +1,12 @@
 package com.tspoon.qnaservice.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -15,10 +17,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "questions")
-@Data
+@Getter
+@Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(AuditingEntityListener.class)
 public class Question {
     
@@ -42,10 +45,12 @@ public class Question {
     @Column(nullable = false)
     private QuestionCategory category;
     
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private QuestionStatus status = QuestionStatus.OPEN;
     
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Priority priority = Priority.NORMAL;
