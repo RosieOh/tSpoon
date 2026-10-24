@@ -31,7 +31,7 @@ spring:
             - id: education-service
               uri: lb://education-service
               predicates:
-                - Path=/api/contents/**,/api/courses/**,/api/materials/**
+                - Path=/api/contents/**
 
             - id: qna-service
               uri: lb://qna-service
