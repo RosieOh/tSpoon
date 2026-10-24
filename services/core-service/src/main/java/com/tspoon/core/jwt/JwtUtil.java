@@ -1,151 +1,74 @@
 package com.tspoon.core.jwt;
 
-import io.jsonwebtoken.*;
+import com.tspoon.core.security.AuthUser;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 
-@Component
 @Slf4j
 public class JwtUtil {
-    
-    @Value("${jwt.secret}")
-    private String secret;
-    
-    @Value("${jwt.expiration}")
-    private Long expiration;
-    
-    @Value("${jwt.refresh-expiration}")
-    private Long refreshExpiration;
-    
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+
+    private static final String CLAIM_EMAIL = "email";
+    private static final String CLAIM_NAME = "name";
+    private static final String CLAIM_ROLE = "role";
+
+    private final SecretKey signingKey;
+    private final String issuer;
+    private final Duration accessTokenTtl;
+
+    public JwtUtil(JwtProperties properties) {
+        this.signingKey = Keys.hmacShaKeyFor(properties.secret().getBytes(StandardCharsets.UTF_8));
+        this.issuer = properties.issuer();
+        this.accessTokenTtl = properties.accessTokenTtl();
     }
-    
-    public String generateToken(Long userId, String email, String role) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("email", email);
-        claims.put("role", role);
-        return createToken(claims, email);
-    }
-    
-    public String generateRefreshToken(Long userId, String email) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("email", email);
-        claims.put("type", "refresh");
-        return createRefreshToken(claims, email);
-    }
-    
-    private String createToken(Map<String, Object> claims, String subject) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expiration);
-        
+
+    public String generateAccessToken(AuthUser user) {
+        Instant now = Instant.now();
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .issuer(issuer)
+                .subject(String.valueOf(user.userId()))
+                .claim(CLAIM_EMAIL, user.email())
+                .claim(CLAIM_NAME, user.name())
+                .claim(CLAIM_ROLE, user.role())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(accessTokenTtl)))
+                .signWith(signingKey)
                 .compact();
     }
-    
-    private String createRefreshToken(Map<String, Object> claims, String subject) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + refreshExpiration);
-        
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
-                .compact();
-    }
-    
-    public String getEmailFromToken(String token) {
-        return getClaimFromToken(token, Claims::getSubject);
-    }
-    
-    public Long getUserIdFromToken(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        return claims.get("userId", Long.class);
-    }
-    
-    public String getRoleFromToken(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        return claims.get("role", String.class);
-    }
-    
-    public Date getExpirationDateFromToken(String token) {
-        return getClaimFromToken(token, Claims::getExpiration);
-    }
-    
-    public <T> T getClaimFromToken(String token, ClaimsResolver<T> claimsResolver) {
-        final Claims claims = getAllClaimsFromToken(token);
-        return claimsResolver.resolve(claims);
-    }
-    
-    private Claims getAllClaimsFromToken(String token) {
+
+    /**
+     * 서명·만료·발급자를 검증하고 사용자 정보를 복원한다. 유효하지 않으면 empty.
+     */
+    public Optional<AuthUser> parseAccessToken(String token) {
         try {
-            return Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .requireIssuer(issuer)
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-        } catch (ExpiredJwtException e) {
-            log.error("JWT token is expired: {}", e.getMessage());
-            throw new RuntimeException("토큰이 만료되었습니다.");
-        } catch (UnsupportedJwtException e) {
-            log.error("JWT token is unsupported: {}", e.getMessage());
-            throw new RuntimeException("지원하지 않는 토큰입니다.");
-        } catch (MalformedJwtException e) {
-            log.error("Invalid JWT token: {}", e.getMessage());
-            throw new RuntimeException("유효하지 않은 토큰입니다.");
-        } catch (SignatureException e) {
-            log.error("Invalid JWT signature: {}", e.getMessage());
-            throw new RuntimeException("유효하지 않은 토큰 서명입니다.");
-        } catch (IllegalArgumentException e) {
-            log.error("JWT claims string is empty: {}", e.getMessage());
-            throw new RuntimeException("토큰이 비어있습니다.");
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            return Optional.of(new AuthUser(
+                    Long.valueOf(claims.getSubject()),
+                    claims.get(CLAIM_EMAIL, String.class),
+                    claims.get(CLAIM_NAME, String.class),
+                    claims.get(CLAIM_ROLE, String.class)));
+        } catch (JwtException | IllegalArgumentException e) {
+            log.debug("Invalid JWT: {}", e.getMessage());
+            return Optional.empty();
         }
     }
-    
-    public Boolean isTokenExpired(String token) {
-        try {
-            final Date expiration = getExpirationDateFromToken(token);
-            return expiration.before(new Date());
-        } catch (Exception e) {
-            return true;
-        }
-    }
-    
-    public Boolean validateToken(String token, String email) {
-        try {
-            final String tokenEmail = getEmailFromToken(token);
-            return (tokenEmail.equals(email) && !isTokenExpired(token));
-        } catch (Exception e) {
-            return false;
-        }
-    }
-    
-    public Boolean validateToken(String token) {
-        try {
-            return !isTokenExpired(token);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-    
-    @FunctionalInterface
-    public interface ClaimsResolver<T> {
-        T resolve(Claims claims);
+
+    public Duration getAccessTokenTtl() {
+        return accessTokenTtl;
     }
 }
