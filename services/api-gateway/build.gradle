@@ -12,5 +12,8 @@ dependencies {
     implementation project(':services:auth-support')
     implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
 
+    // 서비스별 OpenAPI 문서를 모아 보여 주는 Swagger UI
+    implementation libs.springdoc.webflux.ui
+
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 }

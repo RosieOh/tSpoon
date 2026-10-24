@@ -145,6 +145,19 @@ class UserApiIntegrationTest {
         assertThat(mvc.get().uri("/api/users/{id}", 1)).hasStatus(HttpStatus.UNAUTHORIZED);
     }
 
+    @Test
+    void OpenAPI_문서에_JWT_인증과_공개_API가_구분돼_나온다() {
+        MvcTestResult docs = mvc.get().uri("/v3/api-docs").exchange();
+
+        assertThat(docs).hasStatusOk();
+        assertThat(docs).bodyJson().extractingPath("$.components.securitySchemes.bearerAuth.scheme").isEqualTo("bearer");
+        assertThat(docs).bodyJson().extractingPath("$.servers[0].url").isEqualTo("/");
+        assertThat(docs).bodyJson().extractingPath("$.paths['/api/users/login'].post.security").asArray().isEmpty();
+        // 로그인 사용자(@AuthenticationPrincipal)와 Authorization 헤더는 요청 파라미터로 노출하지 않는다
+        assertThat(docs).bodyJson().doesNotHavePath("$.paths['/api/users/profile'].get.parameters");
+        assertThat(docs).bodyJson().doesNotHavePath("$.paths['/api/users/logout'].post.parameters");
+    }
+
     private Long registerAndGetId(String email, String name) throws Exception {
         MvcTestResult result = register(email, "password123", name);
         assertThat(result).hasStatus(HttpStatus.CREATED);

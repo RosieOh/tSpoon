@@ -152,12 +152,24 @@ def scenario_board():
     check("좋아요 200 · 중복 409", (s1, s2) == (200, 409), f"{s1} {s2}")
 
 
+def scenario_docs():
+    print("[docs] Gateway 통합 API 문서")
+    s, config, _ = call("GET", "/v3/api-docs/swagger-config")
+    names = [u["name"] for u in (config or {}).get("urls", [])]
+    check("Swagger UI 에 서비스 6개 문서", s == 200 and len(names) == 6, f"{s} {names}")
+    s, docs, _ = call("GET", "/docs/user-service/v3/api-docs")
+    check("Gateway 경유 user-service 문서", s == 200 and "/api/users/login" in docs.get("paths", {}), s)
+    s, docs, _ = call("GET", "/docs/community-service/v3/api-docs")
+    check("Gateway 경유 community-service 문서", s == 200 and "/api/boards" in docs.get("paths", {}), s)
+
+
 SCENARIOS = {
     "auth": scenario_auth,
     "roles": scenario_roles,
     "tokens": scenario_tokens,
     "privacy": scenario_privacy,
     "board": scenario_board,
+    "docs": scenario_docs,
 }
 
 if __name__ == "__main__":
