@@ -152,6 +152,32 @@ class DomainEventConsumerIntegrationTest {
         assertThat(notificationRepository.findAll()).noneMatch(notification -> notification.getUserId() == userId);
     }
 
+    @Test
+    void 비밀번호_재설정_요청과_변경_알림_메일을_보낸다() throws Exception {
+        long userId = IDS.incrementAndGet();
+        String email = "password-" + UUID.randomUUID() + "@tspoon.com";
+
+        send(DomainEventListener.USER_TOPIC, String.valueOf(userId), envelope(UUID.randomUUID(), "PASSWORD_RESET_REQUESTED", """
+                {"userId": %d, "email": "%s", "name": "김부모", "token": "reset_token-456", "expiresAt": "2026-10-26T15:30:00Z"}
+                """.formatted(userId, email)));
+        send(DomainEventListener.USER_TOPIC, String.valueOf(userId), envelope(UUID.randomUUID(), "PASSWORD_CHANGED", """
+                {"userId": %d, "email": "%s", "name": "김부모", "changedAt": "2026-10-26T15:10:00Z"}
+                """.formatted(userId, email)));
+        await().atMost(Duration.ofSeconds(20)).until(() -> JsonPath.<Integer>read(Mailpit.messagesTo(email), "$.messages_count") == 2);
+
+        String messages = Mailpit.messagesTo(email);
+        assertThat(JsonPath.<List<String>>read(messages, "$.messages[*].Subject"))
+                .containsExactlyInAnyOrder("[티스푼] 비밀번호 재설정 안내", "[티스푼] 비밀번호가 변경되었습니다");
+        String reset = mailText(messages, "[티스푼] 비밀번호 재설정 안내");
+        assertThat(reset).contains("https://tspoon.example/reset-password?token=reset_token-456").contains("2026-10-27 00:30(한국 시간)");
+        assertThat(mailText(messages, "[티스푼] 비밀번호가 변경되었습니다")).contains("2026-10-27 00:10(한국 시간)");
+    }
+
+    private static String mailText(String messages, String subject) throws Exception {
+        List<String> ids = JsonPath.read(messages, "$.messages[?(@.Subject == '" + subject + "')].ID");
+        return JsonPath.read(Mailpit.api("/api/v1/message/" + ids.getFirst()), "$.Text");
+    }
+
     private List<Notification> awaitNotifications(long userId, int expected) {
         await().atMost(Duration.ofSeconds(20)).until(() -> notificationsOf(userId).size() >= expected);
         return notificationsOf(userId);
