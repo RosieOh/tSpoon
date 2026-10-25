@@ -38,11 +38,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusinessException(BusinessException ex) {
         log.debug("Business exception: {}", ex.getMessage());
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
-        if (ex.getCode() != null) {
-            problem.setProperty("code", ex.getCode());
-        }
-        return problem;
+        return toProblem(ex);
+    }
+
+    // 언제 다시 시도하면 되는지 Retry-After(초)로 알린다
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ProblemDetail> handleTooManyRequests(TooManyRequestsException ex) {
+        long seconds = Math.max(1, (ex.getRetryAfter().toMillis() + 999) / 1000);
+        return ResponseEntity.status(ex.getStatus())
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds))
+                .body(toProblem(ex));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -85,6 +90,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .findFirst()
                 .ifPresent(message -> errors.putIfAbsent(result.getMethodParameter().getParameterName(), message)));
         return invalidInput(ex.getBody(), errors, headers, status);
+    }
+
+    private static ProblemDetail toProblem(BusinessException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
+        if (ex.getCode() != null) {
+            problem.setProperty("code", ex.getCode());
+        }
+        return problem;
     }
 
     private static ResponseEntity<Object> invalidInput(ProblemDetail problem, Map<String, String> errors,
