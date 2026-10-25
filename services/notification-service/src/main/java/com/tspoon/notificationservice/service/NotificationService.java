@@ -66,6 +66,8 @@ public class NotificationService {
                 // 수신 주소는 저장하지 않고 발송에만 쓴다
                 eventPublisher.publishEvent(new EmailNotificationRequested(
                         notification.getId(), recipient.email(), request.title(), request.content(), request.actionUrl()));
+            } else {
+                eventPublisher.publishEvent(InAppNotificationCreated.of(notification));
             }
         }
         return ids;
@@ -74,7 +76,7 @@ public class NotificationService {
     // 다른 서비스의 이벤트로 만드는 앱 내 알림 (DomainEventNotifier)
     public Long createInApp(Long userId, String title, String content, Notification.NotificationType type,
                             String actionUrl, String relatedEntityType, Long relatedEntityId) {
-        return notificationRepository.save(Notification.builder()
+        Notification notification = notificationRepository.save(Notification.builder()
                 .userId(userId)
                 .title(title)
                 .content(content)
@@ -85,7 +87,9 @@ public class NotificationService {
                 .actionUrl(actionUrl)
                 .relatedEntityType(relatedEntityType)
                 .relatedEntityId(relatedEntityId)
-                .build()).getId();
+                .build());
+        eventPublisher.publishEvent(InAppNotificationCreated.of(notification));
+        return notification.getId();
     }
 
     @Transactional(readOnly = true)
@@ -124,5 +128,13 @@ public class NotificationService {
     }
 
     public record EmailNotificationRequested(Long notificationId, String email, String title, String content, String actionUrl) {
+    }
+
+    /** 앱 내 알림이 만들어졌다 — 커밋되면 실시간 스트림으로 전한다 */
+    public record InAppNotificationCreated(Long userId, NotificationResponse notification) {
+
+        static InAppNotificationCreated of(Notification notification) {
+            return new InAppNotificationCreated(notification.getUserId(), NotificationResponse.from(notification));
+        }
     }
 }

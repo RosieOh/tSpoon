@@ -3,6 +3,7 @@ package com.tspoon.notificationservice;
 import com.jayway.jsonpath.JsonPath;
 import com.tspoon.core.test.KafkaTestRecords;
 import com.tspoon.core.test.KafkaTestcontainersConfiguration;
+import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
 import com.tspoon.event.test.EventContracts;
 import com.tspoon.notificationservice.entity.Notification;
@@ -31,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @SpringBootTest(properties = {"eureka.client.enabled=false", "tspoon.notification.web-base-url=https://tspoon.example"})
-@Import({TestcontainersConfiguration.class, KafkaTestcontainersConfiguration.class})
+@Import({TestcontainersConfiguration.class, KafkaTestcontainersConfiguration.class, RedisTestcontainersConfiguration.class})
 class DomainEventConsumerIntegrationTest {
 
     private static final AtomicLong IDS = new AtomicLong(7_000);

@@ -461,6 +461,54 @@ def notification_titles(token):
     return [n["title"] for n in (page or {}).get("content", [])]
 
 
+def open_stream(token):
+    """Gateway 를 거쳐 SSE 스트림을 열고, 받은 줄을 큐에 쌓는 스레드를 띄운다."""
+    import queue
+    import threading
+    lines = queue.Queue()
+    req = urllib.request.Request(GATEWAY + "/api/notifications/stream",
+                                 headers={"Authorization": "Bearer " + token, "Accept": "text/event-stream"})
+    res = urllib.request.urlopen(req, timeout=40)  # 하트비트(25초)보다 길게
+
+    def pump():
+        try:
+            for raw in res:
+                lines.put(raw.decode("utf-8").rstrip("\r\n"))
+        except (OSError, ValueError, AttributeError):  # 스트림을 닫으면 읽던 줄이 끊긴다
+            pass
+
+    threading.Thread(target=pump, daemon=True).start()
+    return res, lines
+
+
+def next_line(lines, matches, timeout=30):
+    import queue
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            line = lines.get(timeout=1)
+        except queue.Empty:
+            continue
+        if matches(line):
+            return line
+    return None
+
+
+def scenario_notification_stream():
+    print("[notification-stream] 실시간 알림 (SSE)")
+    _, _, writer = signup_login("실시간글쓴이")
+    _, _, commenter = signup_login("실시간댓글")
+    res, lines = open_stream(writer)
+    first = next_line(lines, lambda line: line.startswith("event:"))
+    check("Gateway 경유 SSE 연결 200 → 처음에 unread-count", res.status == 200 and first == "event:unread-count", f"{res.status} {first}")
+    _, board, _ = call("POST", "/api/boards", {"title": "실시간 글", "content": "본문", "category": "GENERAL"}, token=writer)
+    call("POST", f"/api/boards/{board['id']}/comments", {"content": "실시간 댓글"}, token=commenter)
+    pushed = next_line(lines, lambda line: line.startswith("data:") and "내 게시글에 댓글이 달렸습니다" in line)
+    check("남이 댓글을 달면 새로고침 없이 스트림으로 도착 (community → Kafka → notification → Redis → SSE)",
+          pushed is not None, pushed)
+    res.close()
+
+
 def scenario_event_notifications():
     print("[event-notifications] 행사 리마인더 · 취소 알림")
     import datetime
@@ -584,6 +632,7 @@ SCENARIOS = {
     "rename": scenario_rename,
     "withdrawal": scenario_withdrawal,
     "event-notifications": scenario_event_notifications,
+    "notification-stream": scenario_notification_stream,
     "docs": scenario_docs,
     "rate-limit": scenario_rate_limit,  # 한도를 소진하므로 마지막에
 }
