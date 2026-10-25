@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/CONTENT_REMOVED.schema.json",
+  "title": "교육 콘텐츠가 더 이상 공개되지 않는다",
+  "description": "education-service → tspoon.education.events. 삭제·임시저장으로 되돌림 때.",
+  "type": "object",
+  "required": [
+    "contentId"
+  ],
+  "properties": {
+    "contentId": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/BOARD_REMOVED.schema.json",
+  "title": "게시글이 더 이상 공개되지 않는다",
+  "description": "community-service → tspoon.community.events. 삭제·숨김 때.",
+  "type": "object",
+  "required": [
+    "boardId"
+  ],
+  "properties": {
+    "boardId": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": true
+}

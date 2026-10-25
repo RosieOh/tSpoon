@@ -1,6 +1,7 @@
 package com.tspoon.communityservice.moderation;
 
 import com.tspoon.communityservice.entity.Board;
+import com.tspoon.communityservice.event.BoardPublications;
 import com.tspoon.communityservice.repository.BoardRepository;
 import com.tspoon.moderation.ModerationTarget;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import java.util.Optional;
 public class BoardModerationTarget implements ModerationTarget {
 
     private final BoardRepository boardRepository;
+    private final BoardPublications boardPublications;
 
     @Override
     public String collection() {
@@ -34,14 +36,18 @@ public class BoardModerationTarget implements ModerationTarget {
 
     @Override
     public void hide(long id) {
-        boardRepository.findByIdAndStatus(id, Board.BoardStatus.ACTIVE)
-                .ifPresent(board -> board.setStatus(Board.BoardStatus.HIDDEN));
+        boardRepository.findByIdAndStatus(id, Board.BoardStatus.ACTIVE).ifPresent(board -> {
+            board.setStatus(Board.BoardStatus.HIDDEN);
+            boardPublications.removed(id);
+        });
     }
 
     @Override
     public void restore(long id) {
-        boardRepository.findByIdAndStatus(id, Board.BoardStatus.HIDDEN)
-                .ifPresent(board -> board.setStatus(Board.BoardStatus.ACTIVE));
+        boardRepository.findByIdAndStatus(id, Board.BoardStatus.HIDDEN).ifPresent(board -> {
+            board.setStatus(Board.BoardStatus.ACTIVE);
+            boardPublications.published(board);
+        });
     }
 
     private static Snapshot snapshot(Board board) {

@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
 
+import java.time.Instant;
+
 /**
  * qna-service 가 발행하는 이벤트. 키는 질문 ID 라서 같은 질문의 이벤트는 순서대로 들어간다.
  */
@@ -19,6 +21,8 @@ public class QnaEvents {
     public static final String AGGREGATE_QUESTION = "QUESTION";
     public static final String ANSWER_CREATED = QnaEventTypes.ANSWER_CREATED;
     public static final String ANSWER_ACCEPTED = QnaEventTypes.ANSWER_ACCEPTED;
+    public static final String QUESTION_PUBLISHED = QnaEventTypes.QUESTION_PUBLISHED;
+    public static final String QUESTION_REMOVED = QnaEventTypes.QUESTION_REMOVED;
 
     private static final int PREVIEW_LENGTH = 100;
 
@@ -60,5 +64,18 @@ public class QnaEvents {
             return new AnswerAccepted(answer.getId(), question.getId(), question.getTitle(),
                     question.getAuthorId(), answer.getAuthorId());
         }
+    }
+
+    /** 공개 중인 질문의 지금 모습 전체 — 검색 색인이 그대로 덮어쓴다 */
+    public record QuestionPublished(Long questionId, String title, String content, String category, Long authorId,
+                                    String authorName, Instant createdAt) {
+
+        public static QuestionPublished of(Question question) {
+            return new QuestionPublished(question.getId(), question.getTitle(), question.getContent(),
+                    question.getCategory().name(), question.getAuthorId(), question.getAuthorName(), question.getCreatedAt());
+        }
+    }
+
+    public record QuestionRemoved(Long questionId) {
     }
 }

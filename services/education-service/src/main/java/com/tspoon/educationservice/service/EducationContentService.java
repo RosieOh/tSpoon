@@ -9,6 +9,7 @@ import com.tspoon.educationservice.dto.EducationContentSummary;
 import com.tspoon.educationservice.entity.ContentBookmark;
 import com.tspoon.educationservice.entity.EducationContent;
 import com.tspoon.educationservice.entity.EducationContent.ContentStatus;
+import com.tspoon.educationservice.event.ContentPublications;
 import com.tspoon.educationservice.repository.ContentBookmarkRepository;
 import com.tspoon.educationservice.repository.EducationContentRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class EducationContentService {
 
     private final EducationContentRepository contentRepository;
     private final ContentBookmarkRepository bookmarkRepository;
+    private final ContentPublications contentPublications;
 
     @Transactional(readOnly = true)
     public Page<EducationContentSummary> search(EducationContent.ContentCategory category, EducationContent.ContentType type,
@@ -63,18 +65,30 @@ public class EducationContentService {
                 .authorName(author.name())
                 .build();
         apply(content, request);
-        return EducationContentResponse.from(contentRepository.save(content));
+        EducationContent saved = contentRepository.save(content);
+        if (saved.getStatus() == ContentStatus.ACTIVE) {
+            contentPublications.published(saved);
+        }
+        return EducationContentResponse.from(saved);
     }
 
     public EducationContentResponse update(AuthUser user, Long id, EducationContentRequest request) {
         EducationContent content = findManageable(id, user, "콘텐츠를 수정할 권한이 없습니다.");
         apply(content, request);
-        return EducationContentResponse.from(contentRepository.saveAndFlush(content));
+        EducationContent saved = contentRepository.saveAndFlush(content);
+        // 임시저장으로 되돌리면 검색에서 뺀다
+        if (saved.getStatus() == ContentStatus.ACTIVE) {
+            contentPublications.published(saved);
+        } else {
+            contentPublications.removed(id);
+        }
+        return EducationContentResponse.from(saved);
     }
 
     public void delete(AuthUser user, Long id) {
         EducationContent content = findManageable(id, user, "콘텐츠를 삭제할 권한이 없습니다.");
         content.setStatus(ContentStatus.DELETED);
+        contentPublications.removed(id);
     }
 
     public void bookmark(AuthUser user, Long id) {

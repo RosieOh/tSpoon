@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/QUESTION_REMOVED.schema.json",
+  "title": "질문이 더 이상 공개되지 않는다",
+  "description": "qna-service → tspoon.qna.events. 삭제·숨김 때.",
+  "type": "object",
+  "required": [
+    "questionId"
+  ],
+  "properties": {
+    "questionId": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": true
+}

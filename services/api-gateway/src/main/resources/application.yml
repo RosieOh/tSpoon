@@ -44,6 +44,11 @@ spring:
               predicates:
                 - Path=/api/events/**,/api/notices/**
 
+            - id: search-service
+              uri: ${SEARCH_SERVICE_URI:lb://search-service}
+              predicates:
+                - Path=/api/search/**
+
             - id: notification-service
               uri: ${NOTIFICATION_SERVICE_URI:lb://notification-service}
               predicates:
@@ -83,6 +88,13 @@ spring:
               uri: ${EVENT_SERVICE_URI:lb://event-service}
               predicates:
                 - Path=/docs/event-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: search-service-docs
+              uri: ${SEARCH_SERVICE_URI:lb://search-service}
+              predicates:
+                - Path=/docs/search-service/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
@@ -151,6 +163,8 @@ springdoc:
         url: /docs/event-service/v3/api-docs
       - name: 알림 (notification-service)
         url: /docs/notification-service/v3/api-docs
+      - name: 검색 (search-service)
+        url: /docs/search-service/v3/api-docs
 
 eureka:
   client:
