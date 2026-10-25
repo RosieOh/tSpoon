@@ -1,7 +1,6 @@
 package com.tspoon.userservice.controller;
 
 import com.tspoon.auth.AuthUser;
-import com.tspoon.userservice.dto.ChildResponse;
 import com.tspoon.userservice.dto.LoginRequest;
 import com.tspoon.userservice.dto.LoginResponse;
 import com.tspoon.userservice.dto.LogoutRequest;
@@ -26,8 +25,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "회원", description = "가입·로그인·토큰 재발급·프로필")
 @RestController
@@ -81,12 +78,6 @@ public class UserController {
             @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(userService.updateProfile(authUser.userId(), request));
-    }
-
-    @Operation(summary = "내 자녀 목록")
-    @GetMapping("/children")
-    public ResponseEntity<List<ChildResponse>> getChildren(@AuthenticationPrincipal AuthUser authUser) {
-        return ResponseEntity.ok(userService.getChildren(authUser.userId()));
     }
 
     @Operation(summary = "회원 공개 프로필 (연락처 제외)")
