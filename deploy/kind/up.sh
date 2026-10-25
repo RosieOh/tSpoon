@@ -7,7 +7,7 @@ cd "$(dirname "$0")/../.."
 
 CLUSTER=tspoon
 CONTEXT="kind-$CLUSTER"
-SERVICES=(api-gateway user-service community-service education-service qna-service event-service notification-service search-service)
+SERVICES=(api-gateway user-service community-service education-service qna-service event-service notification-service search-service file-service)
 # 직접 빌드하는 인프라 이미지 (OpenSearch + nori)
 BUILT_INFRA=(opensearch)
 
@@ -34,5 +34,6 @@ echo ""
 echo "✅ kind 클러스터에 올렸습니다"
 echo "  - API Gateway : http://localhost:18080 (문서: /swagger-ui.html)"
 echo "  - Mailpit     : http://localhost:18025"
+echo "  - 파일 저장소 : http://localhost:18333 (S3)"
 echo "  - 상태        : kubectl --context $CONTEXT -n tspoon get pods"
 echo "  - 삭제        : deploy/kind/down.sh"
