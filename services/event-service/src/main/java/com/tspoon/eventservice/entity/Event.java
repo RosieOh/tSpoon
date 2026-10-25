@@ -100,6 +100,9 @@ public class Event {
     @LastModifiedDate
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Column(name = "reminder_sent_at")
+    private Instant reminderSentAt; // 신청자에게 리마인더를 보낸 시각 (행사마다 한 번)
     
     public enum EventType {
         SEMINAR,        // 세미나

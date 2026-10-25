@@ -14,6 +14,11 @@ tspoon:
     public-get-paths:
       - /api/events
       - /api/events/*
+  # 시작 24시간 전 리마인더 (EventReminderProperties)
+  event:
+    reminder:
+      lead-time: ${EVENT_REMINDER_LEAD_TIME:24h}
+      interval: ${EVENT_REMINDER_INTERVAL:30s}
 
 logging:
   level:

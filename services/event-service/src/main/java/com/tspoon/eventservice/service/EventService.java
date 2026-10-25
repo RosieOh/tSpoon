@@ -11,8 +11,10 @@ import com.tspoon.eventservice.entity.Event;
 import com.tspoon.eventservice.entity.Event.EventStatus;
 import com.tspoon.eventservice.entity.EventRegistration;
 import com.tspoon.eventservice.entity.EventRegistration.RegistrationStatus;
+import com.tspoon.eventservice.event.EventEvents;
 import com.tspoon.eventservice.repository.EventRegistrationRepository;
 import com.tspoon.eventservice.repository.EventRepository;
+import com.tspoon.outbox.OutboxEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +41,7 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final EventRegistrationRepository registrationRepository;
+    private final OutboxEventPublisher outboxEventPublisher;
     private final Clock clock;
 
     /**
@@ -79,9 +82,21 @@ public class EventService {
         return EventResponse.from(eventRepository.saveAndFlush(event));
     }
 
+    // 신청자에게 취소를 알린다 (알림 서비스는 신청 내역을 모르므로 받을 회원을 담아 보낸다)
     public void cancel(AuthUser user, Long id) {
         Event event = findManageable(id, user, "행사를 취소할 권한이 없습니다.");
+        if (event.getStatus() == EventStatus.CANCELLED || event.getStatus() == EventStatus.COMPLETED) {
+            throw new BusinessException("이미 취소했거나 끝난 행사입니다.", HttpStatus.CONFLICT);
+        }
         event.setStatus(EventStatus.CANCELLED);
+
+        List<Long> recipients = registrationRepository.findUserIds(id, RegistrationStatus.REGISTERED).stream()
+                .filter(userId -> !userId.equals(event.getOrganizerId()))
+                .toList();
+        if (!recipients.isEmpty()) {
+            outboxEventPublisher.publish(EventEvents.TOPIC, EventEvents.AGGREGATE_EVENT, id, EventEvents.EVENT_CANCELLED,
+                    new EventEvents.EventCancelled(id, event.getTitle(), event.getStartDate(), recipients));
+        }
     }
 
     public RegistrationResponse register(AuthUser user, Long eventId, RegistrationRequest request) {
