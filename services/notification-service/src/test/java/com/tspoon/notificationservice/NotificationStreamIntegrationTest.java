@@ -24,6 +24,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -94,15 +95,35 @@ class NotificationStreamIntegrationTest {
     @Test
     void 하트비트로_연결을_유지하고_떠난_연결은_정리한다() throws Exception {
         long userId = IDS.incrementAndGet();
-        int before = streams.connectionCount();
 
         try (SseClient client = SseClient.connect(port, bearer(userId))) {
             client.await(":keep-alive"::equals);
-            assertThat(streams.connectionCount()).isEqualTo(before + 1);
+            assertThat(streams.connectionCount(userId)).isEqualTo(1);
         }
 
         // 다음 하트비트에서 끊긴 연결을 알아채고 정리한다
-        await().atMost(Duration.ofSeconds(10)).until(() -> streams.connectionCount() == before);
+        await().atMost(Duration.ofSeconds(10)).until(() -> streams.connectionCount(userId) == 0);
+    }
+
+    @Test
+    void 종료할_때는_열린_스트림을_먼저_끝내고_새_연결은_바로_닫는다() throws Exception {
+        long userId = IDS.incrementAndGet();
+
+        try (SseClient client = SseClient.connect(port, bearer(userId))) {
+            client.await("data:{\"count\":0}"::equals);
+
+            streams.stop();
+            try {
+                // 웹 서버의 정상 종료가 이 응답을 기다리지 않도록 서버가 먼저 끝낸다
+                assertThat(client.awaitEnd()).isTrue();
+                try (SseClient late = SseClient.connect(port, bearer(userId))) {
+                    assertThat(late.awaitEnd()).isTrue();
+                }
+                await().atMost(Duration.ofSeconds(10)).until(() -> streams.connectionCount(userId) == 0);
+            } finally {
+                streams.start();
+            }
+        }
     }
 
     @Test
@@ -134,12 +155,19 @@ class NotificationStreamIntegrationTest {
 
         private final HttpClient client;
         private final BlockingQueue<String> lines = new LinkedBlockingQueue<>();
+        private final CountDownLatch ended = new CountDownLatch(1);
         private final int status;
 
         private SseClient(HttpClient client, HttpResponse<java.util.stream.Stream<String>> response) {
             this.client = client;
             this.status = response.statusCode();
-            Thread.ofVirtual().start(() -> response.body().forEach(lines::add));
+            Thread.ofVirtual().start(() -> {
+                try {
+                    response.body().forEach(lines::add);
+                } finally {
+                    ended.countDown();
+                }
+            });
         }
 
         static SseClient connect(int port, String authorization) throws Exception {
@@ -164,6 +192,11 @@ class NotificationStreamIntegrationTest {
                 }
             }
             throw new AssertionError("10초 안에 기다리던 SSE 줄을 받지 못했습니다.");
+        }
+
+        /** 서버가 10초 안에 응답을 끝냈는지 */
+        boolean awaitEnd() throws InterruptedException {
+            return ended.await(10, TimeUnit.SECONDS);
         }
 
         @Override
