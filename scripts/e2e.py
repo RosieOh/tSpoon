@@ -392,6 +392,32 @@ def scenario_notifications():
     check("이메일 알림 201 → Mailpit 에 도착", s == 201 and delivered, f"{s} {delivered}")
 
 
+def wait_until(condition, timeout=30):
+    """Kafka 를 거쳐 비동기로 반영되는 결과를 기다린다."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if condition():
+            return True
+        time.sleep(1)
+    return False
+
+
+def scenario_rename():
+    print("[rename] 이름 변경 → 다른 서비스에 복사해 둔 작성자 이름")
+    _, email, token = signup_login("옛이름")
+    _, board, _ = call("POST", "/api/boards", {"title": "이름 바꿀 글", "content": "본문", "category": "GENERAL"}, token=token)
+    _, question, _ = call("POST", "/api/questions", {"title": "이름 바꿀 질문", "content": "내용", "category": "LEARNING"}, token=token)
+    s, _, _ = call("PUT", "/api/users/profile", {"name": "새이름"}, token=token)
+    s2, _, _ = call("GET", "/api/users/profile", token=token)
+    check("이름 변경 200 → 옛 이름이 담긴 토큰 401(Gateway)", (s, s2) == (200, 401), f"{s} {s2}")
+    synced = wait_until(lambda: call("GET", f"/api/boards/{board['id']}")[1].get("authorName") == "새이름"
+                        and call("GET", f"/api/questions/{question['id']}")[1].get("authorName") == "새이름")
+    check("user → Kafka → 게시판·Q&A 의 예전 글 작성자 이름도 새이름", synced, f"{board['id']} {question['id']}")
+    _, login, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    s, created, _ = call("POST", "/api/boards", {"title": "새 글", "content": "본문", "category": "GENERAL"}, token=login["accessToken"])
+    check("다시 받은 토큰으로 쓴 글은 새 이름", s == 201 and created["authorName"] == "새이름", f"{s} {created}")
+
+
 def unread_count(token, at_least, timeout=30):
     """알림은 Kafka 를 거쳐 비동기로 만들어지므로 기다리며 확인한다."""
     deadline = time.time() + timeout
@@ -490,6 +516,7 @@ SCENARIOS = {
     "notifications": scenario_notifications,
     "domain-events": scenario_domain_events,
     "moderation": scenario_moderation,
+    "rename": scenario_rename,
     "docs": scenario_docs,
     "rate-limit": scenario_rate_limit,  # 한도를 소진하므로 마지막에
 }
