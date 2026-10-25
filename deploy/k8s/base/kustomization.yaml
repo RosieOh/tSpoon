@@ -28,6 +28,8 @@ configMapGenerator:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MAIL_HOST=mailpit
       - MAIL_PORT=1025
+      # 메일 속 링크(이메일 인증 등)가 가리킬 웹 주소 — 운영 overlay 에서 실제 주소로 바꾼다
+      - WEB_BASE_URL=http://localhost:3000
       # Kubernetes 에서는 Service DNS·kube-proxy 가 서비스를 찾고 나눠 주므로 Eureka 를 쓰지 않는다
       - EUREKA_CLIENT_ENABLED=false
       # Gateway 라우트 주소 (기본값 lb:// 대신 Service DNS)
