@@ -21,7 +21,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = {"eureka.client.enabled=false", "tspoon.outbox.relay-enabled=false"})
+@SpringBootTest(properties = {"eureka.client.enabled=false", "tspoon.outbox.relay-enabled=false",
+        "spring.kafka.listener.auto-startup=false"})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class QnaReportIntegrationTest {

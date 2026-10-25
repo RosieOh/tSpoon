@@ -7,6 +7,8 @@ import com.tspoon.communityservice.event.CommunityEvents;
 import com.tspoon.core.test.KafkaTestRecords;
 import com.tspoon.core.test.KafkaTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.TspoonTopics;
+import com.tspoon.event.UserEventTypes;
 import com.tspoon.outbox.OutboxEventPublisher;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
@@ -80,6 +82,26 @@ class CommentEventIntegrationTest {
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM outbox_events WHERE id = ?::uuid AND published_at IS NOT NULL", Integer.class,
                 JsonPath.<String>read(value, "$.eventId"))).isEqualTo(1));
+    }
+
+    @Test
+    void 회원_이름이_바뀌면_게시글_댓글_좋아요에_복사해_둔_이름도_바뀐다() throws Exception {
+        String token = bearer(510L, "옛이름");
+        long boardId = id(post(token, "/api/boards", "{\"title\": \"이름 바꿀 글\", \"content\": \"본문\", \"category\": \"GENERAL\"}"));
+        post(token, "/api/boards/" + boardId + "/comments", "{\"content\": \"내 댓글\"}");
+        assertThat(mvc.post().uri("/api/boards/{id}/like", boardId).header(HttpHeaders.AUTHORIZATION, token)).hasStatusOk();
+
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "510", KafkaTestRecords.envelope(
+                UserEventTypes.PROFILE_UPDATED, "USER", 510, "{\"userId\": 510, \"name\": \"새이름\"}"));
+
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
+            assertThat(jdbcTemplate.queryForObject("SELECT author_name FROM boards WHERE id = ?", String.class, boardId))
+                    .isEqualTo("새이름");
+            assertThat(jdbcTemplate.queryForObject("SELECT author_name FROM comments WHERE board_id = ?", String.class, boardId))
+                    .isEqualTo("새이름");
+            assertThat(jdbcTemplate.queryForObject("SELECT user_name FROM board_likes WHERE board_id = ?", String.class, boardId))
+                    .isEqualTo("새이름");
+        });
     }
 
     @Test
