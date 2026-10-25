@@ -3,6 +3,7 @@ package com.tspoon.core.security;
 import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.jwt.JwtAuthenticationEntryPoint;
 import com.tspoon.core.jwt.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +49,8 @@ public class SecurityConfig {
             .logout(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> {
+                // SSE 같은 비동기 응답의 후속 디스패치 — 첫 요청에서 이미 인증·인가를 마쳤다
+                auth.dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll();
                 auth.requestMatchers("/actuator/health/**", "/actuator/info").permitAll();
                 auth.requestMatchers("/error").permitAll();
                 auth.requestMatchers("/v3/api-docs/**").permitAll(); // 외부에서는 Gateway 의 문서 라우트로만 닿는다
