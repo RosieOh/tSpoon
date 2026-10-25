@@ -10,6 +10,8 @@ public final class UserEventTypes {
     public static final String PASSWORD_CHANGED = "PASSWORD_CHANGED";
     /** payload: {"userId", "name"} */
     public static final String PROFILE_UPDATED = "USER_PROFILE_UPDATED";
+    /** payload: {"userId", "withdrawnAt"} */
+    public static final String WITHDRAWN = "USER_WITHDRAWN";
 
     private UserEventTypes() {
     }
