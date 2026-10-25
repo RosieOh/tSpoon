@@ -6,6 +6,7 @@ import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.test.KafkaTestRecords;
 import com.tspoon.core.test.KafkaTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.event.TspoonTopics;
 import com.tspoon.event.UserEventTypes;
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,7 @@ class UserEventIntegrationTest {
         long contentId = createContent(teacher);
         assertThat(mvc.post().uri("/api/contents/{id}/bookmark", contentId).header(HttpHeaders.AUTHORIZATION, teacher)).hasStatusOk();
 
-        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "710", KafkaTestRecords.envelope(
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "710", EventContracts.envelope(
                 UserEventTypes.PROFILE_UPDATED, "USER", 710, "{\"userId\": 710, \"name\": \"새이름\"}"));
 
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
@@ -70,7 +71,7 @@ class UserEventIntegrationTest {
         assertThat(mvc.post().uri("/api/contents/{id}/bookmark", otherContent).header(HttpHeaders.AUTHORIZATION, bearer(732L, "회원", "PARENT")))
                 .hasStatusOk();
 
-        String withdrawn = KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 730, "{\"userId\": 730, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
+        String withdrawn = EventContracts.envelope(UserEventTypes.WITHDRAWN, "USER", 730, "{\"userId\": 730, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
         KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "730", withdrawn);
         KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "730", withdrawn);
 

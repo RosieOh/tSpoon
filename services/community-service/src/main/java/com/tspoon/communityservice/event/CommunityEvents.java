@@ -2,6 +2,8 @@ package com.tspoon.communityservice.event;
 
 import com.tspoon.communityservice.entity.Board;
 import com.tspoon.communityservice.entity.Comment;
+import com.tspoon.event.CommunityEventTypes;
+import com.tspoon.event.TspoonTopics;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,16 +16,16 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration(proxyBeanMethods = false)
 public class CommunityEvents {
 
-    public static final String TOPIC = "tspoon.community.events";
+    public static final String TOPIC = TspoonTopics.COMMUNITY_EVENTS;
     public static final String AGGREGATE_BOARD = "BOARD";
-    public static final String COMMENT_CREATED = "COMMENT_CREATED";
+    public static final String COMMENT_CREATED = CommunityEventTypes.COMMENT_CREATED;
 
     private static final int PREVIEW_LENGTH = 100;
 
     // 로컬·CI 는 브로커가 하나라 복제본 1
     @Bean
     public NewTopic communityEventsTopic() {
-        return TopicBuilder.name(TOPIC).partitions(3).replicas(1).build();
+        return TopicBuilder.name(TOPIC).partitions(TspoonTopics.PARTITIONS).replicas(1).build();
     }
 
     /**

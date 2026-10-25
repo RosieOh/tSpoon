@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/USER_WITHDRAWN.schema.json",
+  "title": "회원이 탈퇴했다",
+  "description": "user-service → tspoon.user.events. 다른 서비스가 작성자를 익명화하고 개인 활동을 정리한다.",
+  "type": "object",
+  "required": [
+    "userId",
+    "withdrawnAt"
+  ],
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "withdrawnAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

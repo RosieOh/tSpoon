@@ -11,6 +11,8 @@ jjwt = "0.13.0"
 springdoc = "3.0.3"
 # Boot 4.0.9 가 관리하는 OpenTelemetry SDK(1.55.0)에 맞춘 계측 라이브러리 버전
 opentelemetry-instrumentation = "2.21.0-alpha"
+# 이벤트 계약(JSON Schema) 검증 — 3.x 는 Jackson 3(tools.jackson) 기반
+json-schema-validator = "3.0.8"
 
 [libraries]
 spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
@@ -21,3 +23,4 @@ jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
 springdoc-webmvc-api = { module = "org.springdoc:springdoc-openapi-starter-webmvc-api", version.ref = "springdoc" }
 opentelemetry-logback-appender = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0", version.ref = "opentelemetry-instrumentation" }
 springdoc-webflux-ui = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version.ref = "springdoc" }
+json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "json-schema-validator" }

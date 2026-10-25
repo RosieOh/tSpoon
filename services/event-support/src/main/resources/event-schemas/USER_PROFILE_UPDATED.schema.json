@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/USER_PROFILE_UPDATED.schema.json",
+  "title": "회원 이름이 바뀌었다",
+  "description": "user-service → tspoon.user.events. 다른 서비스가 복사해 둔 작성자 이름을 바꾼다.",
+  "type": "object",
+  "required": [
+    "userId",
+    "name"
+  ],
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": true
+}

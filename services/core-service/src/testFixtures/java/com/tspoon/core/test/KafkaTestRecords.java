@@ -10,7 +10,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -57,12 +56,5 @@ public final class KafkaTestRecords {
         } catch (Exception e) {
             throw new IllegalStateException(topic + " 으로 보내지 못했습니다.", e);
         }
-    }
-
-    /** outbox 릴레이가 보내는 것과 같은 봉투 */
-    public static String envelope(String eventType, String aggregateType, Object aggregateId, String payloadJson) {
-        return """
-                {"eventId": "%s", "eventType": "%s", "occurredAt": "%s", "aggregateType": "%s", "aggregateId": "%s", "payload": %s}
-                """.formatted(UUID.randomUUID(), eventType, Instant.now(), aggregateType, aggregateId, payloadJson);
     }
 }

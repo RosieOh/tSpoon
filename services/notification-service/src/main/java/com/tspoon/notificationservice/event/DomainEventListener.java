@@ -1,5 +1,6 @@
 package com.tspoon.notificationservice.event;
 
+import com.tspoon.event.TspoonTopics;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -14,9 +15,9 @@ import tools.jackson.databind.json.JsonMapper;
 @RequiredArgsConstructor
 public class DomainEventListener {
 
-    public static final String COMMUNITY_TOPIC = "tspoon.community.events";
-    public static final String QNA_TOPIC = "tspoon.qna.events";
-    public static final String USER_TOPIC = "tspoon.user.events";
+    public static final String COMMUNITY_TOPIC = TspoonTopics.COMMUNITY_EVENTS;
+    public static final String QNA_TOPIC = TspoonTopics.QNA_EVENTS;
+    public static final String USER_TOPIC = TspoonTopics.USER_EVENTS;
 
     private final DomainEventNotifier notifier;
     private final JsonMapper jsonMapper;

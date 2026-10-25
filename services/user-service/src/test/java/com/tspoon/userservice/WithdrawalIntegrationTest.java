@@ -3,6 +3,7 @@ package com.tspoon.userservice;
 import com.jayway.jsonpath.JsonPath;
 import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.userservice.event.UserEvents;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,8 +63,9 @@ class WithdrawalIntegrationTest {
         assertThat(row.get("withdrawn_at")).isNotNull();
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM children WHERE parent_id = ?", Long.class, userId)).isZero();
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM child_interests", Long.class)).isZero();
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM outbox_events WHERE event_type = ? AND aggregate_id = ?",
-                Long.class, UserEvents.WITHDRAWN, String.valueOf(userId))).isOne();
+        EventContracts.assertPayloadConforms(UserEvents.WITHDRAWN, jdbcTemplate.queryForObject(
+                "SELECT payload::text FROM outbox_events WHERE event_type = ? AND aggregate_id = ?",
+                String.class, UserEvents.WITHDRAWN, String.valueOf(userId)));
 
         assertThat(login(email, "password123")).hasStatus(HttpStatus.UNAUTHORIZED);
         assertThat(post("/api/users/token/refresh", "{\"refreshToken\": \"%s\"}".formatted(read(login, "$.refreshToken"))))

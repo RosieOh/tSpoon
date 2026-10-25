@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.userservice.event.UserEvents;
 import com.tspoon.userservice.service.TokenService;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ class PasswordIntegrationTest {
                 .hasStatus(HttpStatus.ACCEPTED);
         List<String> payloads = events(UserEvents.PASSWORD_RESET_REQUESTED, email);
         assertThat(payloads).hasSize(1);
+        EventContracts.assertPayloadConforms(UserEvents.PASSWORD_RESET_REQUESTED, payloads.getFirst());
         assertThat(Instant.parse(JsonPath.read(payloads.getFirst(), "$.expiresAt")))
                 .isBetween(Instant.now().plus(Duration.ofMinutes(29)), Instant.now().plus(Duration.ofMinutes(31)));
         String token = JsonPath.read(payloads.getFirst(), "$.token");
@@ -65,7 +67,8 @@ class PasswordIntegrationTest {
         assertThat(confirm(token, "another-password-789")).hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson().extractingPath("$.detail").isEqualTo("재설정 링크가 유효하지 않거나 만료되었습니다. 다시 요청해 주세요.");
         // 본인이 아닌 변경을 알아챌 수 있도록 변경 알림 메일을 요청한다
-        assertThat(events(UserEvents.PASSWORD_CHANGED, email)).hasSize(1);
+        assertThat(events(UserEvents.PASSWORD_CHANGED, email)).singleElement()
+                .satisfies(payload -> EventContracts.assertPayloadConforms(UserEvents.PASSWORD_CHANGED, payload));
     }
 
     @Test

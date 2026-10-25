@@ -1,7 +1,7 @@
 package com.tspoon.event;
 
 /**
- * {@link TspoonTopics#USER_EVENTS} 의 이벤트 이름.
+ * {@link TspoonTopics#USER_EVENTS} 의 이벤트 이름. 형식은 event-schemas/{이름}.schema.json
  */
 public final class UserEventTypes {
 

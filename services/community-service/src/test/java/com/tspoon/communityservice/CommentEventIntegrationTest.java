@@ -7,6 +7,7 @@ import com.tspoon.communityservice.event.CommunityEvents;
 import com.tspoon.core.test.KafkaTestRecords;
 import com.tspoon.core.test.KafkaTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.event.TspoonTopics;
 import com.tspoon.event.UserEventTypes;
 import com.tspoon.outbox.OutboxEventPublisher;
@@ -67,6 +68,7 @@ class CommentEventIntegrationTest {
         ConsumerRecord<String, String> record = KafkaTestRecords.consumeUntil(kafka.getBootstrapServers(), CommunityEvents.TOPIC,
                 value -> JsonPath.<Number>read(value, "$.payload.commentId").longValue() == commentId);
 
+        EventContracts.assertConforms(record.value());
         assertThat(record.key()).isEqualTo(String.valueOf(boardId));
         assertThat(new String(record.headers().lastHeader("eventType").value(), StandardCharsets.UTF_8))
                 .isEqualTo(CommunityEvents.COMMENT_CREATED);
@@ -91,7 +93,7 @@ class CommentEventIntegrationTest {
         post(token, "/api/boards/" + boardId + "/comments", "{\"content\": \"내 댓글\"}");
         assertThat(mvc.post().uri("/api/boards/{id}/like", boardId).header(HttpHeaders.AUTHORIZATION, token)).hasStatusOk();
 
-        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "510", KafkaTestRecords.envelope(
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "510", EventContracts.envelope(
                 UserEventTypes.PROFILE_UPDATED, "USER", 510, "{\"userId\": 510, \"name\": \"새이름\"}"));
 
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
@@ -115,7 +117,7 @@ class CommentEventIntegrationTest {
         assertThat(mvc.post().uri("/api/boards/{id}/like", otherBoard).header(HttpHeaders.AUTHORIZATION, bearer(532L, "다른회원")))
                 .hasStatusOk();
 
-        String withdrawn = KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 530, "{\"userId\": 530, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
+        String withdrawn = EventContracts.envelope(UserEventTypes.WITHDRAWN, "USER", 530, "{\"userId\": 530, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
         KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "530", withdrawn);
         KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "530", withdrawn);
 

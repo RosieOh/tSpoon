@@ -1,5 +1,6 @@
 package com.tspoon.notificationservice.event;
 
+import com.tspoon.event.TspoonTopics;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,16 +17,16 @@ public class KafkaConsumerConfig {
      */
     @Bean
     public NewTopic communityEventsTopic() {
-        return TopicBuilder.name(DomainEventListener.COMMUNITY_TOPIC).partitions(3).replicas(1).build();
+        return TopicBuilder.name(DomainEventListener.COMMUNITY_TOPIC).partitions(TspoonTopics.PARTITIONS).replicas(1).build();
     }
 
     @Bean
     public NewTopic qnaEventsTopic() {
-        return TopicBuilder.name(DomainEventListener.QNA_TOPIC).partitions(3).replicas(1).build();
+        return TopicBuilder.name(DomainEventListener.QNA_TOPIC).partitions(TspoonTopics.PARTITIONS).replicas(1).build();
     }
 
     @Bean
     public NewTopic userEventsTopic() {
-        return TopicBuilder.name(DomainEventListener.USER_TOPIC).partitions(3).replicas(1).build();
+        return TopicBuilder.name(DomainEventListener.USER_TOPIC).partitions(TspoonTopics.PARTITIONS).replicas(1).build();
     }
 }

@@ -1,5 +1,8 @@
 package com.tspoon.notificationservice.event;
 
+import com.tspoon.event.CommunityEventTypes;
+import com.tspoon.event.QnaEventTypes;
+import com.tspoon.event.UserEventTypes;
 import com.tspoon.notificationservice.entity.Notification.NotificationType;
 import com.tspoon.notificationservice.service.AccountMailSender;
 import com.tspoon.notificationservice.service.NotificationService;
@@ -40,17 +43,17 @@ public class DomainEventNotifier {
 
         JsonNode payload = envelope.required("payload");
         switch (eventType) {
-            case "COMMENT_CREATED" -> onCommentCreated(payload);
-            case "ANSWER_CREATED" -> onAnswerCreated(payload);
-            case "ANSWER_ACCEPTED" -> onAnswerAccepted(payload);
-            case "EMAIL_VERIFICATION_REQUESTED" -> accountMailSender.sendEmailVerification(
+            case CommunityEventTypes.COMMENT_CREATED -> onCommentCreated(payload);
+            case QnaEventTypes.ANSWER_CREATED -> onAnswerCreated(payload);
+            case QnaEventTypes.ANSWER_ACCEPTED -> onAnswerAccepted(payload);
+            case UserEventTypes.EMAIL_VERIFICATION_REQUESTED -> accountMailSender.sendEmailVerification(
                     payload.required("email").asString(), payload.required("name").asString(),
                     payload.required("token").asString(), Instant.parse(payload.required("expiresAt").asString()));
-            case "PASSWORD_RESET_REQUESTED" -> accountMailSender.sendPasswordReset(
+            case UserEventTypes.PASSWORD_RESET_REQUESTED -> accountMailSender.sendPasswordReset(
                     payload.required("email").asString(), payload.required("name").asString(),
                     payload.required("token").asString(), Instant.parse(payload.required("expiresAt").asString()));
-            case "USER_WITHDRAWN" -> notificationService.deleteAllOf(payload.required("userId").asLong());
-            case "PASSWORD_CHANGED" -> accountMailSender.sendPasswordChanged(
+            case UserEventTypes.WITHDRAWN -> notificationService.deleteAllOf(payload.required("userId").asLong());
+            case UserEventTypes.PASSWORD_CHANGED -> accountMailSender.sendPasswordChanged(
                     payload.required("email").asString(), payload.required("name").asString(),
                     Instant.parse(payload.required("changedAt").asString()));
             default -> log.debug("알림 대상이 아닌 이벤트 {} — 건너뜁니다", eventType);

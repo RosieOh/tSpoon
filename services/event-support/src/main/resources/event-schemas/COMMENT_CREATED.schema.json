@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/COMMENT_CREATED.schema.json",
+  "title": "댓글이 달렸다",
+  "description": "community-service → tspoon.community.events. 답글이면 parentCommentId·parentCommentAuthorId 가 있다.",
+  "type": "object",
+  "required": [
+    "commentId",
+    "boardId",
+    "boardTitle",
+    "boardAuthorId",
+    "authorId",
+    "authorName",
+    "contentPreview"
+  ],
+  "properties": {
+    "commentId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "boardId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "boardTitle": {
+      "type": "string",
+      "minLength": 1
+    },
+    "boardAuthorId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "parentCommentId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "parentCommentAuthorId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "authorId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "authorName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contentPreview": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
