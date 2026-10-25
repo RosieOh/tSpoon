@@ -5,6 +5,7 @@ import com.tspoon.educationservice.dto.EducationContentRequest;
 import com.tspoon.educationservice.dto.EducationContentResponse;
 import com.tspoon.educationservice.dto.EducationContentSummary;
 import com.tspoon.educationservice.entity.EducationContent;
+import com.tspoon.educationservice.recommendation.RecommendationService;
 import com.tspoon.educationservice.service.EducationContentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class EducationContentController {
 
     private final EducationContentService contentService;
+    private final RecommendationService recommendationService;
 
     @Operation(summary = "콘텐츠 목록 (최신순, 카테고리·유형 필터)")
     @SecurityRequirements
@@ -46,6 +48,17 @@ public class EducationContentController {
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "size 는 1 이상이어야 합니다")
             @Max(value = 100, message = "size 는 100 이하여야 합니다") int size) {
         return ResponseEntity.ok(new PagedModel<>(contentService.search(category, type, page, size)));
+    }
+
+    @Operation(summary = "맞춤 추천 — 자녀 학년의 교육 단계 → 육아 → 그 밖의 순(같은 순위는 인기순), 북마크한 것은 뺀다. "
+            + "비로그인·자녀 정보가 없으면 인기순 (basedOn 이 비어 있음)")
+    @SecurityRequirements
+    @GetMapping("/recommendations")
+    public ResponseEntity<RecommendationService.RecommendationResponse> recommendations(
+            @AuthenticationPrincipal AuthUser viewer,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "size 는 1 이상이어야 합니다")
+            @Max(value = 50, message = "size 는 50 이하여야 합니다") int size) {
+        return ResponseEntity.ok(recommendationService.recommend(viewer, size));
     }
 
     @Operation(summary = "콘텐츠 상세 — 조회수 증가. 임시저장 글은 작성자·관리자만")

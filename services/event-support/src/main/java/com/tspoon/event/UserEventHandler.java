@@ -1,5 +1,8 @@
 package com.tspoon.event;
 
+import java.time.Instant;
+import java.util.List;
+
 /**
  * 회원 이벤트를 받아 자기 데이터에 반영하는 서비스가 구현한다 (작성자 이름 갱신, 탈퇴 회원 정리 등).
  * 한 서비스에 여러 개를 등록해도 된다.
@@ -19,5 +22,13 @@ public interface UserEventHandler {
 
     /** 회원이 탈퇴했다 — 작성한 글은 익명으로 남기고, 개인 활동(좋아요·북마크·신청 등)과 개인정보는 정리한다 */
     default void onWithdrawn(long userId) {
+    }
+
+    /**
+     * 회원의 자녀 구성이 바뀌었다 — 지금 자녀들의 학년 전체.
+     *
+     * @param occurredAt 늦게 도착한 옛 이벤트를 걸러낼 때 쓴다
+     */
+    default void onChildrenChanged(long userId, List<String> grades, Instant occurredAt) {
     }
 }

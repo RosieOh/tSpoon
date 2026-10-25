@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/USER_CHILDREN_CHANGED.schema.json",
+  "title": "회원의 자녀 구성이 바뀌었다",
+  "description": "user-service → tspoon.user.events. 자녀를 등록·수정·삭제할 때마다 지금 자녀들의 학년 전체(중복 없이). 자녀가 없으면 빈 배열.",
+  "type": "object",
+  "required": [
+    "userId",
+    "grades"
+  ],
+  "properties": {
+    "userId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "grades": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "KINDERGARTEN",
+          "ELEMENTARY_1",
+          "ELEMENTARY_2",
+          "ELEMENTARY_3",
+          "ELEMENTARY_4",
+          "ELEMENTARY_5",
+          "ELEMENTARY_6",
+          "MIDDLE_1",
+          "MIDDLE_2",
+          "MIDDLE_3",
+          "HIGH_1",
+          "HIGH_2",
+          "HIGH_3"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

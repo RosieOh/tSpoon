@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 탈퇴한 회원의 콘텐츠는 남기되 작성자를 익명화하고, 북마크는 지운다.
+ * 탈퇴한 회원의 콘텐츠는 남기되 작성자를 익명화하고, 북마크는 지운다 (자녀 학년은 ChildGradeProjection 이 지운다).
  * 북마크 수는 이번에 지운 행만큼만 줄이므로 같은 이벤트가 다시 와도 두 번 줄지 않는다.
  */
 @Component

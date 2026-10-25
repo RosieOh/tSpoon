@@ -12,6 +12,8 @@ public final class UserEventTypes {
     public static final String PROFILE_UPDATED = "USER_PROFILE_UPDATED";
     /** payload: {"userId", "withdrawnAt"} */
     public static final String WITHDRAWN = "USER_WITHDRAWN";
+    /** payload: {"userId", "grades"} — 자녀를 등록·수정·삭제할 때마다 지금 자녀들의 학년 */
+    public static final String CHILDREN_CHANGED = "USER_CHILDREN_CHANGED";
 
     private UserEventTypes() {
     }

@@ -343,6 +343,26 @@ def scenario_education():
     check("북마크 200 · 내 북마크에 노출", s1 == 200 and s2 == 200 and mine["content"][0]["id"] == cid, f"{s1} {s2}")
 
 
+def scenario_recommendations():
+    print("[recommendations] 자녀 학년 기반 콘텐츠 추천")
+    _, teacher = promote("TEACHER")
+    ids = {}
+    for category in ("HIGH_SCHOOL", "ELEMENTARY"):
+        _, created, _ = call("POST", "/api/contents", {"title": f"추천 {category}", "description": "설명", "type": "ARTICLE",
+                                                       "category": category, "draft": False}, token=teacher)
+        ids[category] = created["id"]
+    _, _, parent = signup_login("추천부모")
+    s, _, _ = call("POST", "/api/users/children", {"name": "김하나", "grade": "ELEMENTARY_2"}, token=parent)
+
+    def recommended():
+        return call("GET", "/api/contents/recommendations?size=50", token=parent)[1] or {}
+
+    ready = wait_until(lambda: recommended().get("basedOn") == ["ELEMENTARY"])
+    check("자녀 등록 201 → user → Kafka → education 추천 기준이 초등", s == 201 and ready, recommended().get("basedOn"))
+    order = [c["id"] for c in recommended().get("contents", []) if c["id"] in ids.values()]
+    check("자녀 단계(초등) 콘텐츠가 고등 콘텐츠보다 먼저", order == [ids["ELEMENTARY"], ids["HIGH_SCHOOL"]], order)
+
+
 def scenario_qna():
     print("[qna] 질문·전문가 답변·채택")
     _, _, parent = signup_login("질문하는부모")
@@ -651,6 +671,7 @@ SCENARIOS = {
     "children": scenario_children,
     "board": scenario_board,
     "education": scenario_education,
+    "recommendations": scenario_recommendations,
     "qna": scenario_qna,
     "events": scenario_events,
     "notifications": scenario_notifications,

@@ -34,6 +34,11 @@ public class UserEventListener {
                 long userId = payload.required("userId").asLong();
                 handlers.forEach(handler -> handler.onWithdrawn(userId));
             }
+            case UserEventTypes.CHILDREN_CHANGED -> {
+                long userId = payload.required("userId").asLong();
+                List<String> grades = payload.required("grades").valueStream().map(JsonNode::asString).toList();
+                handlers.forEach(handler -> handler.onChildrenChanged(userId, grades, event.occurredAt()));
+            }
             default -> log.trace("처리하지 않는 회원 이벤트 {} — 건너뜁니다", event.eventType());
         }
     }

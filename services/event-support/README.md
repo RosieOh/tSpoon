@@ -25,6 +25,7 @@
 | | `PASSWORD_CHANGED` | user | notification (변경 알림 메일) |
 | | `USER_PROFILE_UPDATED` | user | community · qna · education · event · search (작성자 이름) |
 | | `USER_WITHDRAWN` | user | community · qna · education · event · notification · search (익명화·정리) |
+| | `USER_CHILDREN_CHANGED` | user | education (자녀 학년 기반 추천) |
 | `tspoon.community.events` (키: 게시글 ID) | `COMMENT_CREATED` | community | notification |
 | | `BOARD_PUBLISHED` · `BOARD_REMOVED` | community | search |
 | `tspoon.qna.events` (키: 질문 ID) | `ANSWER_CREATED` · `ANSWER_ACCEPTED` | qna | notification |
