@@ -191,6 +191,14 @@ def scenario_rate_limit():
     time.sleep(16)  # 뒤이어 도는 시나리오가 한도에 걸리지 않게 토큰이 다시 찰 때까지 기다린다
 
 
+def scenario_social_login():
+    print("[social-login] 소셜 로그인 (제공자 키가 없는 환경)")
+    s, providers, _ = call("GET", "/api/users/oauth/providers", token="expired-or-garbage-token")
+    s2, body, _ = call("POST", "/api/users/oauth/kakao", {"code": "any"})
+    check("키를 넣지 않은 제공자는 목록에 없고 로그인 404 (Gateway 경유 공개 경로)",
+          s == 200 and providers == [] and s2 == 404, f"{s} {providers} {s2} {body}")
+
+
 def scenario_roles():
     print("[roles] 초기 관리자·역할 변경·정지")
     admin = admin_token()
@@ -683,6 +691,7 @@ SCENARIOS = {
     "email-verification": scenario_email_verification,
     "password": scenario_password,
     "login-lock": scenario_login_lock,
+    "social-login": scenario_social_login,
     "roles": scenario_roles,
     "tokens": scenario_tokens,
     "privacy": scenario_privacy,
