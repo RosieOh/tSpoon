@@ -38,7 +38,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusinessException(BusinessException ex) {
         log.debug("Business exception: {}", ex.getMessage());
-        return ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
+        if (ex.getCode() != null) {
+            problem.setProperty("code", ex.getCode());
+        }
+        return problem;
     }
 
     @ExceptionHandler(AccessDeniedException.class)
