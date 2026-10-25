@@ -33,6 +33,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final EmailVerificationService emailVerificationService;
 
     public UserResponse register(SignupRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -50,6 +51,7 @@ public class UserService {
                 .build();
 
         User savedUser = userRepository.save(user);
+        emailVerificationService.requestVerification(savedUser);
         return UserResponse.from(savedUser);
     }
 
@@ -60,7 +62,12 @@ public class UserService {
                 .orElseThrow(() -> new BusinessException(LOGIN_FAILED_MESSAGE, HttpStatus.UNAUTHORIZED));
 
         if (user.getStatus() != User.UserStatus.ACTIVE) {
-            throw new BusinessException("비활성화된 계정입니다.", HttpStatus.FORBIDDEN);
+            throw new BusinessException("비활성화된 계정입니다.", HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED");
+        }
+        // 비밀번호가 맞을 때만 알려 주므로 인증 여부가 남에게 드러나지 않는다
+        if (!user.isEmailVerified()) {
+            throw new BusinessException("이메일 인증을 마쳐야 로그인할 수 있습니다. 메일함을 확인해 주세요.",
+                    HttpStatus.FORBIDDEN, "EMAIL_NOT_VERIFIED");
         }
 
         return LoginResponse.of(tokenService.startSession(user), user);
@@ -74,7 +81,7 @@ public class UserService {
 
         if (user.getStatus() != User.UserStatus.ACTIVE) {
             tokenService.revokeAll(user.getId());
-            throw new BusinessException("비활성화된 계정입니다.", HttpStatus.FORBIDDEN);
+            throw new BusinessException("비활성화된 계정입니다.", HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED");
         }
         return LoginResponse.of(tokenService.issue(user, owner.familyId()), user);
     }

@@ -18,13 +18,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.utility.DockerImageName;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
@@ -37,17 +31,9 @@ import static org.awaitility.Awaitility.await;
 @Import(TestcontainersConfiguration.class)
 class NotificationApiIntegrationTest {
 
-    private static final GenericContainer<?> MAILPIT =
-            new GenericContainer<>(DockerImageName.parse("axllent/mailpit:v1.32")).withExposedPorts(1025, 8025);
-
-    static {
-        MAILPIT.start();
-    }
-
     @DynamicPropertySource
     static void mailProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.mail.host", MAILPIT::getHost);
-        registry.add("spring.mail.port", () -> MAILPIT.getMappedPort(1025));
+        Mailpit.register(registry);
     }
 
     private static final AuthUser ADMIN = new AuthUser(1L, "admin@tspoon.com", "관리자", "ADMIN");
@@ -102,7 +88,7 @@ class NotificationApiIntegrationTest {
                 """);
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
-            String messages = mailpit("/api/v1/messages");
+            String messages = Mailpit.api("/api/v1/messages");
             assertThat(JsonPath.<List<String>>read(messages, "$.messages[*].Subject")).contains("[티스푼] 행사 안내");
             assertThat(JsonPath.<List<String>>read(messages, "$.messages[*].To[*].Address")).contains("parent403@tspoon.com");
             assertThat(notificationRepository.findById(ids.getFirst()).orElseThrow().getStatus())
@@ -139,13 +125,6 @@ class NotificationApiIntegrationTest {
 
     private MvcTestResult get(AuthUser user, String uri) {
         return mvc.get().uri(uri).header(HttpHeaders.AUTHORIZATION, bearer(user)).exchange();
-    }
-
-    private static String mailpit(String path) throws Exception {
-        URI uri = URI.create("http://" + MAILPIT.getHost() + ":" + MAILPIT.getMappedPort(8025) + path);
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            return client.send(HttpRequest.newBuilder(uri).build(), HttpResponse.BodyHandlers.ofString()).body();
-        }
     }
 
     private String bearer(AuthUser user) {

@@ -9,10 +9,12 @@
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 
@@ -59,10 +61,36 @@ def wait_ready(paths, timeout=120):
     return False
 
 
+def mailpit(path):
+    with urllib.request.urlopen(MAILPIT + path, timeout=5) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def latest_mail_text(address, subject, timeout=30):
+    """Mailpit 에서 그 주소로 온 가장 최근 메일 본문. 메일은 Kafka 를 거쳐 비동기로 오므로 기다린다."""
+    deadline = time.time() + timeout
+    query = urllib.parse.quote(f'to:"{address}" subject:"{subject}"')
+    while time.time() < deadline:
+        found = mailpit(f"/api/v1/search?query={query}").get("messages", [])
+        if found:
+            return mailpit(f"/api/v1/message/{found[0]['ID']}")["Text"]
+        time.sleep(1)
+    return None
+
+
+def verification_token(email):
+    text = latest_mail_text(email, "이메일 주소를 확인해 주세요") or ""
+    match = re.search(r"/verify-email\?token=([A-Za-z0-9_-]+)", text)
+    return match.group(1) if match else None
+
+
 def signup_login(name="회원"):
     email = f"e2e-{uuid.uuid4().hex[:8]}@tspoon.com"
     status, user, _ = call("POST", "/api/users/register", {"email": email, "password": "password123", "name": name})
     assert status == 201, (status, user)
+    token = verification_token(email)
+    status, _, _ = call("POST", "/api/users/email-verification/confirm", {"token": token})
+    assert status == 204, (status, email, token)
     _, login, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
     return user["id"], email, login["accessToken"]
 
@@ -81,6 +109,24 @@ def scenario_auth():
     s, body, headers = call("GET", "/api/users/profile", token="1_1700000000000")
     check("위조 토큰 401 (ProblemDetail)", s == 401 and headers.get("Content-Type", "").startswith("application/problem+json")
           and body.get("status") == 401, f"{s} {headers.get('Content-Type')} {body}")
+
+
+def scenario_email_verification():
+    print("[email-verification] 가입 → 인증 메일 → 인증 → 로그인")
+    email = f"e2e-{uuid.uuid4().hex[:8]}@tspoon.com"
+    credentials = {"email": email, "password": "password123"}
+    s, user, _ = call("POST", "/api/users/register", {**credentials, "name": "인증회원"})
+    s2, body, _ = call("POST", "/api/users/login", credentials)
+    check("가입 201 → 인증 전 로그인 403 (code EMAIL_NOT_VERIFIED)",
+          s == 201 and not user["emailVerified"] and s2 == 403 and body.get("code") == "EMAIL_NOT_VERIFIED", f"{s} {s2} {body}")
+    token = verification_token(email)
+    check("user → Kafka → notification → Mailpit 인증 메일 도착", token is not None, email)
+    s, _, _ = call("POST", "/api/users/email-verification/confirm", {"token": token})
+    s2, _, _ = call("POST", "/api/users/login", credentials)
+    s3, _, _ = call("POST", "/api/users/email-verification/confirm", {"token": token})
+    check("인증 204 → 로그인 200 · 같은 링크 재사용 400", (s, s2, s3) == (204, 200, 400), f"{s} {s2} {s3}")
+    s, _, _ = call("POST", "/api/users/email-verification/resend", {"email": f"nobody-{uuid.uuid4().hex[:8]}@tspoon.com"})
+    check("가입하지 않은 이메일 재발송도 202", s == 202, s)
 
 
 def scenario_roles():
@@ -259,14 +305,7 @@ def scenario_notifications():
     s, _, _ = call("POST", "/api/admin/notifications",
                    {"recipients": [{"userId": uid, "email": "e2e@tspoon.com"}], "title": subject, "content": "본문", "channel": "EMAIL"},
                    token=admin)
-    delivered = False
-    for _ in range(20):
-        with urllib.request.urlopen(MAILPIT + "/api/v1/messages", timeout=5) as r:
-            messages = json.loads(r.read().decode("utf-8")).get("messages", [])
-        if any(m["Subject"] == "[티스푼] " + subject for m in messages):
-            delivered = True
-            break
-        time.sleep(1)
+    delivered = latest_mail_text("e2e@tspoon.com", subject, timeout=20) is not None
     check("이메일 알림 201 → Mailpit 에 도착", s == 201 and delivered, f"{s} {delivered}")
 
 
@@ -354,6 +393,7 @@ def scenario_docs():
 
 SCENARIOS = {
     "auth": scenario_auth,
+    "email-verification": scenario_email_verification,
     "roles": scenario_roles,
     "tokens": scenario_tokens,
     "privacy": scenario_privacy,

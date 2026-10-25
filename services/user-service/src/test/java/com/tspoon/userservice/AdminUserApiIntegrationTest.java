@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
@@ -23,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
         "eureka.client.enabled=false",
+        "tspoon.outbox.relay-enabled=false",
         "tspoon.admin.email=" + AdminUserApiIntegrationTest.ADMIN_EMAIL,
         "tspoon.admin.password=" + AdminUserApiIntegrationTest.ADMIN_PASSWORD
 })
@@ -38,6 +40,9 @@ class AdminUserApiIntegrationTest {
 
     @Autowired
     JwtUtil jwtUtil;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     @Test
     void 기동_시_만든_초기_관리자로_로그인해_전체_회원_목록을_볼_수_있다() throws Exception {
@@ -124,6 +129,7 @@ class AdminUserApiIntegrationTest {
                         """.formatted(email))
                 .exchange();
         assertThat(result).hasStatus(HttpStatus.CREATED);
+        TestAccounts.verifyEmail(jdbcTemplate, email);
         return ((Number) JsonPath.read(body(result), "$.id")).longValue();
     }
 

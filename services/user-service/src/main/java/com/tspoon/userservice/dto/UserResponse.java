@@ -12,6 +12,7 @@ public record UserResponse(
         String address,
         User.UserRole role,
         User.UserStatus status,
+        boolean emailVerified,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -25,6 +26,7 @@ public record UserResponse(
                 user.getAddress(),
                 user.getRole(),
                 user.getStatus(),
+                user.isEmailVerified(),
                 user.getCreatedAt(),
                 user.getUpdatedAt());
     }

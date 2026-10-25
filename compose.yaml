@@ -154,6 +154,8 @@ services:
       <<: *domain-service-depends-on
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   community-service:
     <<: *java-service
@@ -212,6 +214,7 @@ services:
       <<: *domain-service-env
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
     depends_on:
       <<: *domain-service-depends-on
       kafka:

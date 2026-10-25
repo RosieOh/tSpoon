@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
@@ -23,7 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "eureka.client.enabled=false")
+@SpringBootTest(properties = {"eureka.client.enabled=false", "tspoon.outbox.relay-enabled=false"})
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, RedisTestcontainersConfiguration.class})
 class UserApiIntegrationTest {
@@ -37,6 +38,9 @@ class UserApiIntegrationTest {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
     @Test
     void 회원가입_후_로그인하면_발급된_JWT로_프로필을_조회할_수_있다() throws Exception {
         String email = uniqueEmail();
@@ -44,6 +48,7 @@ class UserApiIntegrationTest {
         assertThat(register(email, "password123", "김부모"))
                 .hasStatus(HttpStatus.CREATED)
                 .bodyJson().extractingPath("$.email").isEqualTo(email);
+        TestAccounts.verifyEmail(jdbcTemplate, email);
 
         MvcTestResult login = login(email, "password123");
         assertThat(login).hasStatusOk();

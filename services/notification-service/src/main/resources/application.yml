@@ -28,6 +28,8 @@ spring:
 tspoon:
   notification:
     mail-from: ${MAIL_FROM:no-reply@tspoon.local}
+    # 메일 속 링크(이메일 인증 등)가 가리킬 웹 주소
+    web-base-url: ${WEB_BASE_URL:http://localhost:3000}
 
 # 메일 서버 상태가 서비스 준비 상태(health)를 좌우하지 않게 한다 — 발송 실패는 알림 상태(FAILED)로 남는다
 management:

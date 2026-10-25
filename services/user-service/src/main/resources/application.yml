@@ -18,6 +18,14 @@ tspoon:
       - /api/users/register
       - /api/users/login
       - /api/users/token/refresh
+      - /api/users/email-verification/confirm
+      - /api/users/email-verification/resend
+  # 인증 링크 유효 시간 · 재발송 대기 · 미인증 가입 보관 기간 (EmailVerificationProperties)
+  user:
+    email-verification:
+      token-ttl: ${EMAIL_VERIFICATION_TOKEN_TTL:24h}
+      resend-cooldown: ${EMAIL_VERIFICATION_RESEND_COOLDOWN:1m}
+      unverified-retention: ${UNVERIFIED_USER_RETENTION:7d}
   # 둘 다 있고 관리자가 한 명도 없을 때만 기동 시 관리자 계정을 만든다
   admin:
     email: ${ADMIN_EMAIL:}

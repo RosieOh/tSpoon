@@ -11,14 +11,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Set;
 import java.util.UUID;
 
@@ -31,9 +25,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class TokenService {
-
-    private static final SecureRandom RANDOM = new SecureRandom();
-    private static final int REFRESH_TOKEN_BYTES = 32;
 
     private final StringRedisTemplate redis;
     private final JwtUtil jwtUtil;
@@ -52,7 +43,7 @@ public class TokenService {
      * Refresh Token 을 한 번 쓰고 버린다. GETDEL 로 꺼내므로 같은 토큰으로 동시에 요청해도 하나만 성공한다.
      */
     public RefreshTokenOwner consume(String refreshToken) {
-        String hash = hash(refreshToken);
+        String hash = SecureTokens.sha256(refreshToken);
         String value = redis.opsForValue().getAndDelete(AuthRedisKeys.refreshToken(hash));
 
         if (value == null) {
@@ -77,8 +68,8 @@ public class TokenService {
         AuthUser authUser = new AuthUser(user.getId(), user.getEmail(), user.getName(), user.getRole().name());
         String accessToken = jwtUtil.generateAccessToken(authUser, currentVersion(user.getId()));
 
-        String refreshToken = newRefreshToken();
-        redis.opsForValue().set(AuthRedisKeys.refreshToken(hash(refreshToken)),
+        String refreshToken = SecureTokens.generate();
+        redis.opsForValue().set(AuthRedisKeys.refreshToken(SecureTokens.sha256(refreshToken)),
                 RefreshTokenOwner.format(user.getId(), familyId), jwtUtil.getRefreshTokenTtl());
 
         return new IssuedTokens(accessToken, jwtUtil.getAccessTokenTtl(), refreshToken, jwtUtil.getRefreshTokenTtl());
@@ -90,7 +81,7 @@ public class TokenService {
      */
     public void logout(Long userId, String accessToken, String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
-            String key = AuthRedisKeys.refreshToken(hash(refreshToken));
+            String key = AuthRedisKeys.refreshToken(SecureTokens.sha256(refreshToken));
             String value = redis.opsForValue().get(key);
             if (value != null) {
                 RefreshTokenOwner owner = RefreshTokenOwner.parse(value);
@@ -138,22 +129,6 @@ public class TokenService {
 
     private static BusinessException invalidRefreshToken() {
         return new BusinessException("Refresh Token 이 유효하지 않습니다. 다시 로그인해 주세요.", HttpStatus.UNAUTHORIZED);
-    }
-
-    private static String newRefreshToken() {
-        byte[] bytes = new byte[REFRESH_TOKEN_BYTES];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    // Redis 가 유출돼도 원문을 쓸 수 없도록 해시만 저장한다
-    private static String hash(String token) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     public record IssuedTokens(String accessToken, Duration accessTokenTtl, String refreshToken, Duration refreshTokenTtl) {

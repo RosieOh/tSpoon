@@ -3,6 +3,8 @@ plugins {
 }
 
 dependencies {
-    // Refresh Token · 로그아웃 차단 목록 · 토큰 버전 저장
+    // Refresh Token · 로그아웃 차단 목록 · 토큰 버전 · 메일 링크 토큰 저장
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // 인증 메일 요청 등 회원 이벤트를 Transactional Outbox 로 Kafka 에 발행
+    implementation project(':services:outbox-support')
 }

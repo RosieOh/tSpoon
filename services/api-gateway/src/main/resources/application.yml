@@ -109,11 +109,13 @@ tspoon:
     secret: ${JWT_SECRET:local-dev-only-jwt-secret-change-me-0123456789}
   gateway:
     auth:
-      # 로그인·가입·재발급 요청에 만료된 Access Token 이 헤더로 따라와도 막지 않는다
+      # 로그인·가입·재발급·이메일 인증 요청에 만료된 Access Token 이 헤더로 따라와도 막지 않는다
       skip-paths:
         - /api/users/login
         - /api/users/register
         - /api/users/token/refresh
+        - /api/users/email-verification/confirm
+        - /api/users/email-verification/resend
 
 # 서비스별 문서를 한곳에서: http://localhost:8080/swagger-ui.html
 # 운영에서 숨기려면 SPRINGDOC_SWAGGER_UI_ENABLED=false, SPRINGDOC_API_DOCS_ENABLED=false
