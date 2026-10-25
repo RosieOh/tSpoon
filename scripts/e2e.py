@@ -70,8 +70,11 @@ def check(name, condition, detail=""):
 def wait_ready(paths, timeout=120):
     deadline = time.time() + timeout
     while time.time() < deadline:
-        if all(call("GET", p)[0] not in (502, 503, 504) for p in paths):
-            return True
+        try:
+            if all(call("GET", p)[0] not in (502, 503, 504) for p in paths):
+                return True
+        except OSError:  # 막 뜬 서비스의 첫 요청(콜드 스타트)이 응답 제한 시간을 넘기거나 연결이 끊기면 아직 준비 중으로 본다
+            pass
         time.sleep(2)
     return False
 
