@@ -16,6 +16,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.kafka.KafkaContainer;
 
 import java.time.Duration;
@@ -27,11 +29,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@SpringBootTest(properties = "eureka.client.enabled=false")
+@SpringBootTest(properties = {"eureka.client.enabled=false", "tspoon.notification.web-base-url=https://tspoon.example"})
 @Import({TestcontainersConfiguration.class, KafkaTestcontainersConfiguration.class})
 class DomainEventConsumerIntegrationTest {
 
     private static final AtomicLong IDS = new AtomicLong(7_000);
+
+    @DynamicPropertySource
+    static void mailProperties(DynamicPropertyRegistry registry) {
+        Mailpit.register(registry);
+    }
 
     @Autowired
     KafkaTemplate<String, String> kafkaTemplate;
@@ -47,7 +54,8 @@ class DomainEventConsumerIntegrationTest {
         // 메시지 전송으로 자동 생성된 토픽은 파티션이 1개, 기동 시 선언으로 만든 토픽은 3개
         try (AdminClient admin = AdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()))) {
             Map<String, TopicDescription> topics = admin.describeTopics(
-                    List.of(DomainEventListener.COMMUNITY_TOPIC, DomainEventListener.QNA_TOPIC)).allTopicNames().get();
+                    List.of(DomainEventListener.COMMUNITY_TOPIC, DomainEventListener.QNA_TOPIC, DomainEventListener.USER_TOPIC))
+                    .allTopicNames().get();
             assertThat(topics.values()).allSatisfy(topic -> assertThat(topic.partitions()).hasSize(3));
         }
     }
@@ -121,6 +129,29 @@ class DomainEventConsumerIntegrationTest {
                 value -> value.contains(marker)).value()).startsWith("{not json");
     }
 
+    @Test
+    void 이메일_인증_요청을_받으면_링크가_담긴_메일을_한_번만_보내고_알림함에는_남기지_않는다() throws Exception {
+        long userId = IDS.incrementAndGet();
+        String email = "verify-" + UUID.randomUUID() + "@tspoon.com";
+        String marker = "marker-" + UUID.randomUUID() + "@tspoon.com";
+        String event = emailVerificationRequested(UUID.randomUUID(), userId, email);
+
+        send(DomainEventListener.USER_TOPIC, String.valueOf(userId), event);
+        send(DomainEventListener.USER_TOPIC, String.valueOf(userId), event);
+        // 같은 키(파티션)로 표시용 이벤트를 뒤에 보내 앞의 두 메시지가 모두 처리됐음을 확인한다
+        send(DomainEventListener.USER_TOPIC, String.valueOf(userId), emailVerificationRequested(UUID.randomUUID(), userId, marker));
+        await().atMost(Duration.ofSeconds(20)).until(() -> JsonPath.<Integer>read(Mailpit.messagesTo(marker), "$.messages_count") == 1);
+
+        String messages = Mailpit.messagesTo(email);
+        assertThat(JsonPath.<Integer>read(messages, "$.messages_count")).isEqualTo(1);
+        assertThat(JsonPath.<String>read(messages, "$.messages[0].Subject")).isEqualTo("[티스푼] 이메일 주소를 확인해 주세요");
+        String text = JsonPath.read(Mailpit.api("/api/v1/message/" + JsonPath.read(messages, "$.messages[0].ID")), "$.Text");
+        assertThat(text).contains("https://tspoon.example/verify-email?token=one-time_token-123")
+                .contains("2026-10-27 00:00(한국 시간)");
+        // 링크에 일회용 토큰이 있으므로 알림으로 저장하지 않는다
+        assertThat(notificationRepository.findAll()).noneMatch(notification -> notification.getUserId() == userId);
+    }
+
     private List<Notification> awaitNotifications(long userId, int expected) {
         await().atMost(Duration.ofSeconds(20)).until(() -> notificationsOf(userId).size() >= expected);
         return notificationsOf(userId);
@@ -142,6 +173,13 @@ class DomainEventConsumerIntegrationTest {
                  "contentPreview": "좋은 글이네요"}
                 """.formatted(boardId, boardAuthorId, parentAuthorId == null ? "null" : "1",
                 parentAuthorId == null ? "null" : parentAuthorId, authorId));
+    }
+
+    private static String emailVerificationRequested(UUID eventId, long userId, String email) {
+        return envelope(eventId, "EMAIL_VERIFICATION_REQUESTED", """
+                {"userId": %d, "email": "%s", "name": "김부모", "token": "one-time_token-123",
+                 "expiresAt": "2026-10-26T15:00:00Z"}
+                """.formatted(userId, email));
     }
 
     private static String envelope(UUID eventId, String eventType, String payload) {

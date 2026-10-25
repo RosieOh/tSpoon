@@ -29,6 +29,11 @@ public class KafkaConsumerConfig {
         return TopicBuilder.name(DomainEventListener.QNA_TOPIC).partitions(3).replicas(1).build();
     }
 
+    @Bean
+    public NewTopic userEventsTopic() {
+        return TopicBuilder.name(DomainEventListener.USER_TOPIC).partitions(3).replicas(1).build();
+    }
+
     /**
      * 처리에 실패한 메시지는 1초 간격으로 3번 다시 시도하고, 그래도 안 되면 DLT 로 보내 뒤 메시지를 막지 않는다.
      * JSON 이 깨졌거나 필드가 없는 메시지는 다시 해도 소용없으므로 바로 DLT 로 보낸다.
