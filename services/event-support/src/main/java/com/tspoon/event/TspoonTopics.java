@@ -12,6 +12,8 @@ public final class TspoonTopics {
     public static final String COMMUNITY_EVENTS = "tspoon.community.events";
     /** qna-service — 답변·채택. 키: 질문 ID */
     public static final String QNA_EVENTS = "tspoon.qna.events";
+    /** event-service — 행사 리마인더·취소. 키: 행사 ID */
+    public static final String EVENT_EVENTS = "tspoon.event.events";
 
     public static final int PARTITIONS = 3;
 
