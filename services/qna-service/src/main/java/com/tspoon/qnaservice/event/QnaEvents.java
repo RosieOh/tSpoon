@@ -1,5 +1,7 @@
 package com.tspoon.qnaservice.event;
 
+import com.tspoon.event.QnaEventTypes;
+import com.tspoon.event.TspoonTopics;
 import com.tspoon.qnaservice.entity.Answer;
 import com.tspoon.qnaservice.entity.Question;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -13,17 +15,17 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration(proxyBeanMethods = false)
 public class QnaEvents {
 
-    public static final String TOPIC = "tspoon.qna.events";
+    public static final String TOPIC = TspoonTopics.QNA_EVENTS;
     public static final String AGGREGATE_QUESTION = "QUESTION";
-    public static final String ANSWER_CREATED = "ANSWER_CREATED";
-    public static final String ANSWER_ACCEPTED = "ANSWER_ACCEPTED";
+    public static final String ANSWER_CREATED = QnaEventTypes.ANSWER_CREATED;
+    public static final String ANSWER_ACCEPTED = QnaEventTypes.ANSWER_ACCEPTED;
 
     private static final int PREVIEW_LENGTH = 100;
 
     // 로컬·CI 는 브로커가 하나라 복제본 1
     @Bean
     public NewTopic qnaEventsTopic() {
-        return TopicBuilder.name(TOPIC).partitions(3).replicas(1).build();
+        return TopicBuilder.name(TOPIC).partitions(TspoonTopics.PARTITIONS).replicas(1).build();
     }
 
     public record AnswerCreated(
