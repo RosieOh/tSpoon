@@ -7,6 +7,7 @@ package com.tspoon.userservice.service;
  * one-time:{용도}:{해시}          → 회원ID   메일 링크 토큰. 한 번 쓰면(GETDEL) 사라짐, 원문 대신 SHA-256 해시로 저장
  * one-time-latest:{용도}:{회원ID} → 해시     회원의 가장 최근 토큰. 새로 발급하면 이전 토큰을 지운다
  * verification-cooldown:{회원ID}  → "1"      인증 메일 재발송 대기 시간
+ * password-reset-cooldown:{회원ID} → "1"     비밀번호 재설정 메일 재요청 대기 시간
  * </pre>
  */
 public final class UserRedisKeys {
@@ -26,5 +27,9 @@ public final class UserRedisKeys {
 
     public static String verificationCooldown(Long userId) {
         return PREFIX + "verification-cooldown:" + userId;
+    }
+
+    public static String passwordResetCooldown(Long userId) {
+        return PREFIX + "password-reset-cooldown:" + userId;
     }
 }

@@ -16,6 +16,8 @@ public class UserEvents {
     public static final String TOPIC = "tspoon.user.events";
     public static final String AGGREGATE_USER = "USER";
     public static final String EMAIL_VERIFICATION_REQUESTED = "EMAIL_VERIFICATION_REQUESTED";
+    public static final String PASSWORD_RESET_REQUESTED = "PASSWORD_RESET_REQUESTED";
+    public static final String PASSWORD_CHANGED = "PASSWORD_CHANGED";
 
     // 로컬·CI 는 브로커가 하나라 복제본 1
     @Bean
@@ -28,5 +30,13 @@ public class UserEvents {
      * user-service 는 해시만 보관한다.
      */
     public record EmailVerificationRequested(Long userId, String email, String name, String token, Instant expiresAt) {
+    }
+
+    /** 비밀번호 재설정 메일 발송 요청. token 은 EmailVerificationRequested 와 같은 성격의 일회용 값이다 */
+    public record PasswordResetRequested(Long userId, String email, String name, String token, Instant expiresAt) {
+    }
+
+    /** 비밀번호가 바뀌었다 (재설정·변경 모두). 본인이 아닌 변경을 알아챌 수 있도록 메일로 알린다 */
+    public record PasswordChanged(Long userId, String email, String name, Instant changedAt) {
     }
 }
