@@ -6,8 +6,10 @@ import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.userservice.dto.ChildRequest;
 import com.tspoon.userservice.entity.Child;
+import com.tspoon.userservice.event.UserEvents;
 import com.tspoon.userservice.repository.ChildRepository;
 import com.tspoon.userservice.service.ChildService;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
@@ -55,6 +58,9 @@ class ChildApiIntegrationTest {
     @Autowired
     ChildRepository childRepository;
 
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
     @Test
     void 자녀를_등록하고_수정하고_삭제할_수_있다() throws Exception {
         String token = bearer(registerAndGetId());
@@ -84,6 +90,27 @@ class ChildApiIntegrationTest {
         assertThat(mvc.get().uri("/api/users/children").header(HttpHeaders.AUTHORIZATION, token))
                 .hasStatusOk()
                 .bodyJson().extractingPath("$").asArray().isEmpty();
+    }
+
+    @Test
+    void 자녀_구성이_바뀔_때마다_지금_자녀들의_학년을_이벤트로_남긴다() throws Exception {
+        long userId = registerAndGetId();
+        String token = bearer(userId);
+        long first = idOf(create(token, CHILD_JSON));                                              // ELEMENTARY_3
+        create(token, CHILD_JSON.replace("ELEMENTARY_3", "KINDERGARTEN"));
+        mvc.put().uri("/api/users/children/{id}", first).header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON).content(CHILD_JSON.replace("ELEMENTARY_3", "MIDDLE_1")).exchange();
+        mvc.delete().uri("/api/users/children/{id}", first).header(HttpHeaders.AUTHORIZATION, token).exchange();
+
+        List<String> payloads = jdbcTemplate.queryForList("""
+                SELECT payload::text FROM outbox_events WHERE event_type = ? AND aggregate_id = ? ORDER BY created_at
+                """, String.class, UserEvents.CHILDREN_CHANGED, String.valueOf(userId));
+        payloads.forEach(payload -> EventContracts.assertPayloadConforms(UserEvents.CHILDREN_CHANGED, payload));
+        assertThat(payloads).extracting(payload -> JsonPath.<List<String>>read(payload, "$.grades")).containsExactly(
+                List.of("ELEMENTARY_3"),
+                List.of("KINDERGARTEN", "ELEMENTARY_3"),
+                List.of("KINDERGARTEN", "MIDDLE_1"),
+                List.of("KINDERGARTEN"));
     }
 
     @Test

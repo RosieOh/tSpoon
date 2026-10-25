@@ -2,12 +2,14 @@ package com.tspoon.userservice.event;
 
 import com.tspoon.event.TspoonTopics;
 import com.tspoon.event.UserEventTypes;
+import com.tspoon.userservice.entity.Child;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * user-service 가 발행하는 이벤트. 키는 회원 ID 라서 같은 회원의 이벤트는 같은 파티션에 순서대로 들어간다.
@@ -22,6 +24,7 @@ public class UserEvents {
     public static final String PASSWORD_CHANGED = UserEventTypes.PASSWORD_CHANGED;
     public static final String PROFILE_UPDATED = UserEventTypes.PROFILE_UPDATED;
     public static final String WITHDRAWN = UserEventTypes.WITHDRAWN;
+    public static final String CHILDREN_CHANGED = UserEventTypes.CHILDREN_CHANGED;
 
     // 로컬·CI 는 브로커가 하나라 복제본 1
     @Bean
@@ -50,5 +53,9 @@ public class UserEvents {
 
     /** 탈퇴했다. 다른 서비스가 작성자를 익명화하고 개인 활동을 정리한다 */
     public record Withdrawn(Long userId, Instant withdrawnAt) {
+    }
+
+    /** 자녀 구성이 바뀌었다 — 지금 자녀들의 학년 전체. 교육 서비스가 맞춤 추천에 쓴다 (이름·생년월일 등은 보내지 않는다) */
+    public record ChildrenChanged(Long userId, List<Child.Grade> grades) {
     }
 }
