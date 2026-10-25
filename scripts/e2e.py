@@ -26,7 +26,22 @@ ADMIN = (os.environ.get("ADMIN_EMAIL", "admin@tspoon.local"),
 results = []
 
 
-def call(method, path, body=None, token=None, headers=None):
+def call(method, path, body=None, token=None, headers=None, retry=True):
+    """Gateway 의 요청 제한(429 RATE_LIMITED)에 걸리면 올바른 클라이언트처럼 Retry-After 만큼 기다렸다 다시 보낸다."""
+    for _ in range(5):
+        status, parsed, response_headers = send(method, path, body, token, headers)
+        limited = status == 429 and isinstance(parsed, dict) and parsed.get("code") == "RATE_LIMITED"
+        if not (retry and limited):
+            break
+        time.sleep(int(header(response_headers, "Retry-After") or "1"))
+    return status, parsed, response_headers
+
+
+def header(headers, name):
+    return next((v for k, v in (headers or {}).items() if k.lower() == name.lower()), None)
+
+
+def send(method, path, body=None, token=None, headers=None):
     data = json.dumps(body, ensure_ascii=False).encode("utf-8") if body is not None else None
     req = urllib.request.Request(GATEWAY + path, data=data, method=method)
     req.add_header("Content-Type", "application/json; charset=utf-8")
@@ -150,6 +165,30 @@ def scenario_password():
     s3, _, _ = call("GET", "/api/users/profile", token=(changed or {}).get("accessToken"))
     check("변경 200 → 이전 토큰 401 · 응답의 새 토큰 200", (s, s2, s3) == (200, 401, 200), f"{s} {s2} {s3}")
     check("비밀번호 변경 알림 메일 도착", latest_mail_text(email, "비밀번호가 변경되었습니다") is not None, email)
+
+
+def scenario_login_lock():
+    print("[login-lock] 연속 로그인 실패 잠금")
+    _, email, _ = signup_login("잠금회원")
+    statuses = [call("POST", "/api/users/login", {"email": email, "password": "wrong-password"})[0] for _ in range(5)]
+    s, body, headers = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    check("5번 틀린 뒤에는 올바른 비밀번호도 429 (code LOGIN_LOCKED, Retry-After)",
+          statuses == [401] * 5 and s == 429 and body.get("code") == "LOGIN_LOCKED" and int(header(headers, "Retry-After") or 0) > 0,
+          f"{statuses} {s} {body}")
+
+
+def scenario_rate_limit():
+    print("[rate-limit] Gateway IP 별 요청 제한")
+    results = [call("POST", "/api/users/password-reset/request", {"email": f"flood-{i}@tspoon.com"}, retry=False)
+               for i in range(60)]
+    limited = [r for r in results if r[0] == 429]
+    status, body, headers = limited[0] if limited else (None, {}, {})
+    check("한꺼번에 몰리면 Gateway 가 429 (ProblemDetail, code RATE_LIMITED, Retry-After)",
+          bool(limited) and body.get("code") == "RATE_LIMITED" and header(headers, "Retry-After") == "1"
+          and (header(headers, "Content-Type") or "").startswith("application/problem+json"), f"{len(limited)}/60 {body}")
+    s, _, _ = call("GET", "/api/boards")
+    check("제한 경로가 아닌 API 는 그대로 200", s == 200, s)
+    time.sleep(16)  # 뒤이어 도는 시나리오가 한도에 걸리지 않게 토큰이 다시 찰 때까지 기다린다
 
 
 def scenario_roles():
@@ -418,6 +457,7 @@ SCENARIOS = {
     "auth": scenario_auth,
     "email-verification": scenario_email_verification,
     "password": scenario_password,
+    "login-lock": scenario_login_lock,
     "roles": scenario_roles,
     "tokens": scenario_tokens,
     "privacy": scenario_privacy,
@@ -429,6 +469,7 @@ SCENARIOS = {
     "notifications": scenario_notifications,
     "domain-events": scenario_domain_events,
     "docs": scenario_docs,
+    "rate-limit": scenario_rate_limit,  # 한도를 소진하므로 마지막에
 }
 
 # 컨테이너를 멈췄다 켜는 시나리오는 이름을 직접 줄 때만 돈다

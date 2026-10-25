@@ -1,5 +1,6 @@
 package com.tspoon.apigateway.auth;
 
+import com.tspoon.apigateway.support.ProblemResponses;
 import com.tspoon.auth.AuthRedisKeys;
 import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.auth.jwt.VerifiedToken;
@@ -11,14 +12,10 @@ import org.springframework.core.Ordered;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -78,18 +75,7 @@ public class AccessTokenVerificationFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> reject(ServerWebExchange exchange, String message) {
-        // 도메인 서비스와 같은 RFC 9457 ProblemDetail 형식
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("type", "about:blank");
-        body.put("title", HttpStatus.UNAUTHORIZED.getReasonPhrase());
-        body.put("status", HttpStatus.UNAUTHORIZED.value());
-        body.put("detail", message);
-        body.put("instance", exchange.getRequest().getPath().value());
-
-        ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
-        response.getHeaders().setContentType(MediaType.APPLICATION_PROBLEM_JSON);
-        return response.writeWith(Mono.just(response.bufferFactory().wrap(jsonMapper.writeValueAsBytes(body))));
+        return ProblemResponses.write(exchange, jsonMapper, HttpStatus.UNAUTHORIZED, message, null);
     }
 
     @Override

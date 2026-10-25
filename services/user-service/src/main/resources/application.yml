@@ -28,6 +28,11 @@ tspoon:
       token-ttl: ${EMAIL_VERIFICATION_TOKEN_TTL:24h}
       resend-cooldown: ${EMAIL_VERIFICATION_RESEND_COOLDOWN:1m}
       unverified-retention: ${UNVERIFIED_USER_RETENTION:7d}
+    # 연속 로그인 실패 잠금 (LoginLockProperties)
+    login-lock:
+      max-failures: ${LOGIN_LOCK_MAX_FAILURES:5}
+      window: ${LOGIN_LOCK_WINDOW:15m}
+      lock-duration: ${LOGIN_LOCK_DURATION:15m}
     # 재설정 링크 유효 시간 · 재요청 대기 (PasswordResetProperties)
     password-reset:
       token-ttl: ${PASSWORD_RESET_TOKEN_TTL:30m}
