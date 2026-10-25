@@ -599,11 +599,38 @@ def scenario_outbox_resilience():
     check("재시작 뒤 놓친 알림 도착", unread_count(writer, 1, timeout=90) == 1, unread_count(writer, 1, 1))
 
 
+def search_hits(query):
+    s, page, _ = call("GET", "/api/search?" + urllib.parse.urlencode({"q": query, "size": 50}))
+    return s, (page or {}).get("content", []) if s == 200 else []
+
+
+def scenario_search():
+    print("[search] 통합 검색 (OpenSearch · nori)")
+    _, _, writer = signup_login("검색글쓴이")
+    marker = uuid.uuid4().hex[:8]
+    _, board, _ = call("POST", "/api/boards", {"title": f"초등학생 수학 공부법을 공유합니다 {marker}", "content": "매일 10분씩 연산 연습",
+                                               "category": "EDUCATION"}, token=writer)
+    _, question, _ = call("POST", "/api/questions", {"title": f"아이 영어 단어 외우기 {marker}", "content": "방법이 있을까요",
+                                                     "category": "LEARNING"}, token=writer)
+
+    def found(query, kind, target_id):
+        return any(hit["type"] == kind and hit["id"] == target_id for hit in search_hits(query)[1])
+
+    indexed = wait_until(lambda: found(f"공부 {marker}", "BOARD", board["id"]) and found(f"영어 {marker}", "QUESTION", question["id"]))
+    check("글·질문 작성 → Kafka → 색인 → '공부'(형태소)로 '공부법을' 검색 (비로그인)", indexed, f"{search_hits(marker)}")
+    hit = next((h for h in search_hits(f"공부 {marker}")[1] if h["id"] == board["id"]), {})
+    check("검색어 강조 표시 · 이동 경로", "<em>공부</em>" in (hit.get("highlight") or "")
+          and hit.get("url") == f"/boards/{board['id']}", hit)
+    call("DELETE", f"/api/boards/{board['id']}", token=writer)
+    removed = wait_until(lambda: not found(f"공부 {marker}", "BOARD", board["id"]))
+    check("글 삭제 → 검색에서 빠짐", removed, search_hits(marker))
+
+
 def scenario_docs():
     print("[docs] Gateway 통합 API 문서")
     s, config, _ = call("GET", "/v3/api-docs/swagger-config")
     names = [u["name"] for u in (config or {}).get("urls", [])]
-    check("Swagger UI 에 서비스 6개 문서", s == 200 and len(names) == 6, f"{s} {names}")
+    check("Swagger UI 에 서비스 7개 문서", s == 200 and len(names) == 7, f"{s} {names}")
     s, docs, _ = call("GET", "/docs/user-service/v3/api-docs")
     check("Gateway 경유 user-service 문서", s == 200 and "/api/users/login" in docs.get("paths", {}), s)
     s, docs, _ = call("GET", "/docs/community-service/v3/api-docs")
@@ -630,6 +657,7 @@ SCENARIOS = {
     "withdrawal": scenario_withdrawal,
     "event-notifications": scenario_event_notifications,
     "notification-stream": scenario_notification_stream,
+    "search": scenario_search,
     "docs": scenario_docs,
     "rate-limit": scenario_rate_limit,  # 한도를 소진하므로 마지막에
 }
