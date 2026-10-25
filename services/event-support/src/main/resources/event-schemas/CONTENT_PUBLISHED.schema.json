@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/CONTENT_PUBLISHED.schema.json",
+  "title": "교육 콘텐츠가 공개됐거나 내용이 바뀌었다",
+  "description": "education-service → tspoon.education.events. 공개 작성·수정 때. content 는 소개와 본문을 합친 검색용 텍스트.",
+  "type": "object",
+  "required": [
+    "contentId",
+    "title",
+    "content",
+    "category",
+    "authorId",
+    "authorName",
+    "createdAt"
+  ],
+  "properties": {
+    "contentId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "authorName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

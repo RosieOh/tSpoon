@@ -43,9 +43,15 @@ public final class EventContracts {
 
     /** 계약을 지킨 메시지를 만든다 — 소비 측 테스트의 픽스처. 계약에 어긋나면 만들지 않는다 */
     public static String envelope(String eventType, String aggregateType, Object aggregateId, String payloadJson) {
+        return envelope(eventType, aggregateType, aggregateId, payloadJson, Instant.now());
+    }
+
+    /** 발생 시각을 정해 만든다 — 순서가 뒤바뀐 이벤트를 흉내 낼 때 */
+    public static String envelope(String eventType, String aggregateType, Object aggregateId, String payloadJson,
+                                  Instant occurredAt) {
         String message = """
                 {"eventId": "%s", "eventType": "%s", "occurredAt": "%s", "aggregateType": "%s", "aggregateId": "%s", "payload": %s}
-                """.formatted(UUID.randomUUID(), eventType, Instant.now(), aggregateType, aggregateId, payloadJson);
+                """.formatted(UUID.randomUUID(), eventType, occurredAt, aggregateType, aggregateId, payloadJson);
         assertConforms(message);
         return message;
     }

@@ -23,10 +23,13 @@
 | `tspoon.user.events` (키: 회원 ID) | `EMAIL_VERIFICATION_REQUESTED` | user | notification (인증 메일) |
 | | `PASSWORD_RESET_REQUESTED` | user | notification (재설정 메일) |
 | | `PASSWORD_CHANGED` | user | notification (변경 알림 메일) |
-| | `USER_PROFILE_UPDATED` | user | community · qna · education · event (작성자 이름) |
-| | `USER_WITHDRAWN` | user | community · qna · education · event · notification (익명화·정리) |
+| | `USER_PROFILE_UPDATED` | user | community · qna · education · event · search (작성자 이름) |
+| | `USER_WITHDRAWN` | user | community · qna · education · event · notification · search (익명화·정리) |
 | `tspoon.community.events` (키: 게시글 ID) | `COMMENT_CREATED` | community | notification |
+| | `BOARD_PUBLISHED` · `BOARD_REMOVED` | community | search |
 | `tspoon.qna.events` (키: 질문 ID) | `ANSWER_CREATED` · `ANSWER_ACCEPTED` | qna | notification |
+| | `QUESTION_PUBLISHED` · `QUESTION_REMOVED` | qna | search |
+| `tspoon.education.events` (키: 콘텐츠 ID) | `CONTENT_PUBLISHED` · `CONTENT_REMOVED` | education | search |
 | `tspoon.event.events` (키: 행사 ID) | `EVENT_REMINDER` · `EVENT_CANCELLED` · `EVENT_WAITLIST_PROMOTED` | event | notification (받을 회원을 담아 보낸다) |
 
 각 이벤트의 payload 형식은 [`event-schemas/{이벤트}.schema.json`](src/main/resources/event-schemas) (JSON Schema 2020-12).

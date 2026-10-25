@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/QUESTION_PUBLISHED.schema.json",
+  "title": "질문이 공개됐거나 내용이 바뀌었다",
+  "description": "qna-service → tspoon.qna.events. 작성·수정·숨김 해제 때. 지금 모습 전체.",
+  "type": "object",
+  "required": [
+    "questionId",
+    "title",
+    "content",
+    "category",
+    "authorId",
+    "authorName",
+    "createdAt"
+  ],
+  "properties": {
+    "questionId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "authorName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}
