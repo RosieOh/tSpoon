@@ -1,0 +1,15 @@
+// 파일 업로드 — 첨부파일·썸네일을 S3 호환 저장소(로컬은 SeaweedFS)에 둔다.
+// 서버는 Presigned URL 만 발급하고, 파일 바이트는 클라이언트가 저장소와 직접 주고받는다.
+plugins {
+    id 'tspoon.domain-service'
+}
+
+dependencies {
+    implementation platform(libs.aws.sdk.bom)
+    // 동기 클라이언트만 쓰므로 비동기용 Netty 클라이언트는 빼고 JDK HttpURLConnection 클라이언트를 쓴다
+    implementation('software.amazon.awssdk:s3') {
+        exclude group: 'software.amazon.awssdk', module: 'netty-nio-client'
+        exclude group: 'software.amazon.awssdk', module: 'apache-client'
+    }
+    implementation 'software.amazon.awssdk:url-connection-client'
+}

@@ -1,0 +1,29 @@
+# 공통 기본값(가상 스레드, JPA, Eureka, Actuator, JWT)은 core-service 의 tspoon-defaults.yml 참고
+server:
+  port: 8088
+
+spring:
+  application:
+    name: file-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/file_db
+
+tspoon:
+  security:
+    # 업로드한 파일의 정보·내려받기 주소는 공개 (게시글 첨부·썸네일). 목록·업로드·삭제는 로그인 필요
+    public-get-paths:
+      - /api/files/*
+  # S3 호환 저장소 (FileStorageProperties)
+  file:
+    storage:
+      endpoint: ${FILE_STORAGE_ENDPOINT:http://localhost:8333}
+      # Presigned URL 에 들어갈 주소 — 클라이언트가 닿는 주소여야 한다 (컨테이너 안 주소와 다를 수 있다)
+      public-endpoint: ${FILE_STORAGE_PUBLIC_ENDPOINT:http://localhost:8333}
+      region: ${FILE_STORAGE_REGION:us-east-1}
+      bucket: ${FILE_STORAGE_BUCKET:tspoon-files}
+      access-key: ${FILE_STORAGE_ACCESS_KEY:tspoon-local-access-key}
+      secret-key: ${FILE_STORAGE_SECRET_KEY:tspoon-local-secret-key-change-me}
+
+logging:
+  level:
+    com.tspoon: DEBUG

@@ -13,6 +13,8 @@ springdoc = "3.0.3"
 opentelemetry-instrumentation = "2.21.0-alpha"
 # 이벤트 계약(JSON Schema) 검증 — 3.x 는 Jackson 3(tools.jackson) 기반
 json-schema-validator = "3.0.8"
+# 파일 업로드(file-service)의 S3 호환 저장소 접근 — Presigned URL
+aws-sdk = "2.55.14"
 
 [libraries]
 spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
@@ -24,3 +26,4 @@ springdoc-webmvc-api = { module = "org.springdoc:springdoc-openapi-starter-webmv
 opentelemetry-logback-appender = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0", version.ref = "opentelemetry-instrumentation" }
 springdoc-webflux-ui = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version.ref = "springdoc" }
 json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "json-schema-validator" }
+aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
