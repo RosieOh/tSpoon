@@ -13,6 +13,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "children")
@@ -45,10 +47,14 @@ public class Child {
     @Column
     private String school;
     
-    @Column
-    private String interests; // 관심사 (JSON 형태로 저장)
+    @ElementCollection
+    @CollectionTable(name = "child_interests", joinColumns = @JoinColumn(name = "child_id"))
+    @OrderColumn(name = "sort_order")
+    @Column(name = "interest", nullable = false, length = 30)
+    @Builder.Default
+    private List<String> interests = new ArrayList<>(); // 관심사 (입력 순서 유지)
     
-    @Column
+    @Column(length = 1000)
     private String notes; // 부모가 작성한 메모
     
     @CreatedDate
@@ -58,6 +64,12 @@ public class Child {
     @LastModifiedDate
     @Column(name = "updated_at")
     private Instant updatedAt;
+    
+    // Hibernate 가 추적하는 컬렉션 인스턴스를 유지한 채 내용만 바꾼다
+    public void replaceInterests(List<String> newInterests) {
+        interests.clear();
+        interests.addAll(newInterests);
+    }
     
     public enum Grade {
         KINDERGARTEN,   // 유치원

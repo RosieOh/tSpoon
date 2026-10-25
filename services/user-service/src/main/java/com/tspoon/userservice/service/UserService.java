@@ -2,7 +2,6 @@ package com.tspoon.userservice.service;
 
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.exception.ResourceNotFoundException;
-import com.tspoon.userservice.dto.ChildResponse;
 import com.tspoon.userservice.dto.LoginRequest;
 import com.tspoon.userservice.dto.LoginResponse;
 import com.tspoon.userservice.dto.LogoutRequest;
@@ -22,8 +21,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -99,13 +96,6 @@ public class UserService {
         user.setAddress(request.address());
 
         return UserResponse.from(user);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ChildResponse> getChildren(Long userId) {
-        return findUser(userId).getChildren().stream()
-                .map(ChildResponse::from)
-                .toList();
     }
 
     // 비활성·정지된 회원은 공개 프로필도 보여 주지 않는다

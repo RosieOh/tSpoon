@@ -139,6 +139,25 @@ def scenario_privacy():
     check("공개 프로필에 연락처 없음", s == 200 and "email" not in body and "phone" not in body, f"{s} {body}")
 
 
+def scenario_children():
+    print("[children] 자녀 정보")
+    _, _, token = signup_login("자녀부모")
+    _, _, other = signup_login()
+    s, child, _ = call("POST", "/api/users/children",
+                       {"name": "김하나", "birthDate": "2017-03-02", "grade": "ELEMENTARY_3", "interests": ["독서", "코딩"]},
+                       token=token)
+    check("자녀 등록 201", s == 201 and child["interests"] == ["독서", "코딩"], f"{s} {child}")
+    s, updated, _ = call("PUT", f"/api/users/children/{child['id']}",
+                         {"name": "김하나", "grade": "ELEMENTARY_4", "interests": ["과학"]}, token=token)
+    s2, _, _ = call("DELETE", f"/api/users/children/{child['id']}", token=other)
+    _, children, _ = call("GET", "/api/users/children", token=token)
+    check("수정 200 · 다른 회원의 삭제 404", s == 200 and s2 == 404 and children[0]["grade"] == "ELEMENTARY_4",
+          f"{s} {s2} {children}")
+    s, _, _ = call("DELETE", f"/api/users/children/{child['id']}", token=token)
+    _, children, _ = call("GET", "/api/users/children", token=token)
+    check("본인 삭제 204 → 목록 비어 있음", s == 204 and children == [], f"{s} {children}")
+
+
 def scenario_board():
     print("[board] 게시판")
     _, _, token = signup_login("글쓴이")
@@ -338,6 +357,7 @@ SCENARIOS = {
     "roles": scenario_roles,
     "tokens": scenario_tokens,
     "privacy": scenario_privacy,
+    "children": scenario_children,
     "board": scenario_board,
     "education": scenario_education,
     "qna": scenario_qna,
