@@ -21,6 +21,7 @@ public class UserEvents {
     public static final String PASSWORD_RESET_REQUESTED = UserEventTypes.PASSWORD_RESET_REQUESTED;
     public static final String PASSWORD_CHANGED = UserEventTypes.PASSWORD_CHANGED;
     public static final String PROFILE_UPDATED = UserEventTypes.PROFILE_UPDATED;
+    public static final String WITHDRAWN = UserEventTypes.WITHDRAWN;
 
     // 로컬·CI 는 브로커가 하나라 복제본 1
     @Bean
@@ -45,5 +46,9 @@ public class UserEvents {
 
     /** 이름이 바뀌었다. 다른 서비스가 복사해 둔 작성자 이름을 바꾼다 */
     public record ProfileUpdated(Long userId, String name) {
+    }
+
+    /** 탈퇴했다. 다른 서비스가 작성자를 익명화하고 개인 활동을 정리한다 */
+    public record Withdrawn(Long userId, Instant withdrawnAt) {
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -22,6 +23,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     Optional<User> findByIdAndStatus(Long id, User.UserStatus status);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<User> findAllLockedByRoleAndStatus(User.UserRole role, User.UserStatus status);
+    
     // 회원 단위로 직렬화해야 하는 작업(자녀 수 상한 등)에서 쓴다
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<User> findLockedById(Long id);

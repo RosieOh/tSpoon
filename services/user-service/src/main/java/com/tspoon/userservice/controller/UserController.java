@@ -9,7 +9,9 @@ import com.tspoon.userservice.dto.RefreshTokenRequest;
 import com.tspoon.userservice.dto.SignupRequest;
 import com.tspoon.userservice.dto.UpdateProfileRequest;
 import com.tspoon.userservice.dto.UserResponse;
+import com.tspoon.userservice.dto.WithdrawRequest;
 import com.tspoon.userservice.service.UserService;
+import com.tspoon.userservice.service.WithdrawalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final WithdrawalService withdrawalService;
 
     @Operation(summary = "회원가입")
     @SecurityRequirements
@@ -78,6 +81,14 @@ public class UserController {
             @AuthenticationPrincipal AuthUser authUser,
             @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(userService.updateProfile(authUser.userId(), request));
+    }
+
+    @Operation(summary = "회원 탈퇴 — 비밀번호 확인. 글은 \"탈퇴한 회원\" 으로 남고 개인정보·활동은 정리된다")
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> withdraw(@AuthenticationPrincipal AuthUser authUser,
+                                         @Valid @RequestBody WithdrawRequest request) {
+        withdrawalService.withdraw(authUser.userId(), request.password());
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "회원 공개 프로필 (연락처 제외)")
