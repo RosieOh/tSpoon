@@ -1,16 +1,23 @@
 package com.tspoon.qnaservice.repository;
 
 import com.tspoon.qnaservice.entity.Question;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
+import java.util.Optional;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
+
+    // 같은 질문에 대한 동시 신고를 줄 세운다
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Question> findLockedById(Long id);
 
     // 카테고리는 주어질 때만 거른다
     @Query("""
