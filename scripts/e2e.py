@@ -449,6 +449,33 @@ def scenario_withdrawal():
     check("같은 이메일로 다시 가입 201", s == 201, s)
 
 
+def notification_titles(token):
+    _, page, _ = call("GET", "/api/notifications?size=50", token=token)
+    return [n["title"] for n in (page or {}).get("content", [])]
+
+
+def scenario_event_notifications():
+    print("[event-notifications] 행사 리마인더 · 취소 알림")
+    import datetime
+    _, teacher = promote("TEACHER")
+    _, _, parent = signup_login("행사알림회원")
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).replace(microsecond=0, tzinfo=None)
+    event_ids = []
+    for starts_in in (datetime.timedelta(hours=3), datetime.timedelta(days=5)):
+        start = now + starts_in
+        _, event, _ = call("POST", "/api/events", {"title": "알림 행사", "description": "설명", "type": "SEMINAR", "location": "서울",
+                                                   "startDate": start.isoformat(),
+                                                   "endDate": (start + datetime.timedelta(hours=2)).isoformat()}, token=teacher)
+        call("POST", f"/api/events/{event['id']}/registrations", {}, token=parent)
+        event_ids.append(event["id"])
+    s, _, _ = call("POST", f"/api/events/{event_ids[1]}/cancel", token=teacher)
+    cancelled = wait_until(lambda: "신청한 행사가 취소되었습니다" in notification_titles(parent))
+    check("행사 취소 204 → event → Kafka → 신청자에게 취소 알림", s == 204 and cancelled, f"{s} {notification_titles(parent)}")
+    # 리마인더 스케줄러는 30초마다 돈다
+    reminded = wait_until(lambda: "신청한 행사가 곧 시작합니다" in notification_titles(parent), timeout=90)
+    check("24시간 안에 시작하는 행사 → 리마인더 알림", reminded, notification_titles(parent))
+
+
 def unread_count(token, at_least, timeout=30):
     """알림은 Kafka 를 거쳐 비동기로 만들어지므로 기다리며 확인한다."""
     deadline = time.time() + timeout
@@ -549,6 +576,7 @@ SCENARIOS = {
     "moderation": scenario_moderation,
     "rename": scenario_rename,
     "withdrawal": scenario_withdrawal,
+    "event-notifications": scenario_event_notifications,
     "docs": scenario_docs,
     "rate-limit": scenario_rate_limit,  # 한도를 소진하므로 마지막에
 }
