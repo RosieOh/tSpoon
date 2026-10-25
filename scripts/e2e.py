@@ -291,6 +291,27 @@ def scenario_board():
     check("게시글 댓글 수 2", after["commentCount"] == 2, after)
 
 
+def scenario_moderation():
+    print("[moderation] 신고 → 자동 숨김 → 관리자 기각")
+    admin = admin_token()
+    _, _, writer = signup_login("신고당한회원")
+    _, board, _ = call("POST", "/api/boards", {"title": "광고 글", "content": "본문", "category": "GENERAL"}, token=writer)
+    reporters = [signup_login(f"신고자{i}")[2] for i in range(5)]
+    statuses = [call("POST", f"/api/boards/{board['id']}/reports", {"reason": "SPAM"}, token=t)[0] for t in reporters]
+    s, _, _ = call("GET", f"/api/boards/{board['id']}")
+    check("다섯 명이 신고 201 → 게시글 자동 숨김 404", statuses == [201] * 5 and s == 404, f"{statuses} {s}")
+    s, pending, _ = call("GET", "/api/admin/reports/boards?size=100", token=admin)
+    target = next((t for t in (pending or {}).get("content", []) if t["targetId"] == board["id"]), None)
+    check("Gateway 경유 관리자 신고 목록 (5건, HIDDEN)",
+          s == 200 and target is not None and target["reportCount"] == 5 and target["targetStatus"] == "HIDDEN", f"{s} {target}")
+    s, _, _ = call("POST", f"/api/admin/reports/boards/{board['id']}/dismiss", token=admin)
+    s2, _, _ = call("GET", f"/api/boards/{board['id']}")
+    check("기각 204 → 다시 공개 200", (s, s2) == (204, 200), f"{s} {s2}")
+    s, _, _ = call("GET", "/api/admin/reports/questions", token=admin)
+    s2, _, _ = call("GET", "/api/admin/reports/boards", token=writer)
+    check("질문 신고 목록은 qna-service 로 200 · 일반 회원 403", (s, s2) == (200, 403), f"{s} {s2}")
+
+
 def promote(role):
     """관리자가 새 회원의 역할을 바꾸고, 그 회원이 재발급받은 (새 역할이 담긴) 토큰을 돌려준다."""
     uid, email, _ = signup_login(f"{role}회원")
@@ -468,6 +489,7 @@ SCENARIOS = {
     "events": scenario_events,
     "notifications": scenario_notifications,
     "domain-events": scenario_domain_events,
+    "moderation": scenario_moderation,
     "docs": scenario_docs,
     "rate-limit": scenario_rate_limit,  # 한도를 소진하므로 마지막에
 }
