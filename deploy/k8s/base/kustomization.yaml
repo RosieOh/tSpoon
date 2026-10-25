@@ -12,6 +12,7 @@ resources:
   - infra/redis.yaml
   - infra/kafka.yaml
   - infra/mailpit.yaml
+  - infra/opensearch.yaml
   - apps/api-gateway.yaml
   - apps/user-service.yaml
   - apps/community-service.yaml
@@ -19,6 +20,7 @@ resources:
   - apps/qna-service.yaml
   - apps/event-service.yaml
   - apps/notification-service.yaml
+  - apps/search-service.yaml
 
 configMapGenerator:
   - name: tspoon-config
@@ -28,6 +30,7 @@ configMapGenerator:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - MAIL_HOST=mailpit
       - MAIL_PORT=1025
+      - OPENSEARCH_URL=http://opensearch:9200
       # 메일 속 링크(이메일 인증 등)가 가리킬 웹 주소 — 운영 overlay 에서 실제 주소로 바꾼다
       - WEB_BASE_URL=http://localhost:3000
       # Kubernetes 에서는 Service DNS·kube-proxy 가 서비스를 찾고 나눠 주므로 Eureka 를 쓰지 않는다
@@ -39,6 +42,7 @@ configMapGenerator:
       - QNA_SERVICE_URI=http://qna-service:8084
       - EVENT_SERVICE_URI=http://event-service:8085
       - NOTIFICATION_SERVICE_URI=http://notification-service:8086
+      - SEARCH_SERVICE_URI=http://search-service:8087
   # docker compose 와 같은 init 스크립트를 쓴다 (빌드할 때 --load-restrictor LoadRestrictionsNone 필요)
   - name: postgres-init
     files:
