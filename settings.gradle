@@ -13,6 +13,7 @@ rootProject.name = 'tspoon-msa'
 include 'services:auth-support'
 include 'services:observability-support'
 include 'services:outbox-support'
+include 'services:moderation-support'
 include 'services:core-service'
 
 // 인프라
