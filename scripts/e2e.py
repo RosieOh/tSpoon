@@ -418,6 +418,37 @@ def scenario_rename():
     check("다시 받은 토큰으로 쓴 글은 새 이름", s == 201 and created["authorName"] == "새이름", f"{s} {created}")
 
 
+def scenario_withdrawal():
+    print("[withdrawal] 회원 탈퇴 → 글 익명화 · 좋아요 · 다가오는 신청 정리")
+    import datetime
+    _, email, token = signup_login("떠날회원")
+    _, _, other = signup_login("남는회원")
+    _, own, _ = call("POST", "/api/boards", {"title": "남길 글", "content": "본문", "category": "GENERAL"}, token=token)
+    _, liked, _ = call("POST", "/api/boards", {"title": "좋아요 받은 글", "content": "본문", "category": "GENERAL"}, token=other)
+    call("POST", f"/api/boards/{liked['id']}/like", token=token)
+    start = (datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))) + datetime.timedelta(days=7)).replace(microsecond=0, tzinfo=None)
+    _, teacher = promote("TEACHER")
+    _, event, _ = call("POST", "/api/events", {"title": "탈퇴 행사", "description": "설명", "type": "SEMINAR", "maxParticipants": 1,
+                                               "startDate": start.isoformat(), "endDate": (start + datetime.timedelta(hours=2)).isoformat()},
+                       token=teacher)
+    call("POST", f"/api/events/{event['id']}/registrations", {}, token=token)
+
+    s, body, _ = call("DELETE", "/api/users/me", {"password": "wrong-password"}, token=token)
+    s2, _, _ = call("DELETE", "/api/users/me", {"password": "password123"}, token=token)
+    check("틀린 비밀번호 400 (code INVALID_PASSWORD) → 탈퇴 204", (s, s2) == (400, 204) and body.get("code") == "INVALID_PASSWORD",
+          f"{s} {s2} {body}")
+    s, _, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    s2, _, _ = call("GET", "/api/users/profile", token=token)
+    check("탈퇴 후 로그인 401 · 기존 토큰 401(Gateway)", (s, s2) == (401, 401), f"{s} {s2}")
+    cleaned = wait_until(lambda: call("GET", f"/api/boards/{own['id']}")[1].get("authorName") == "탈퇴한 회원"
+                         and call("GET", f"/api/boards/{liked['id']}")[1].get("likeCount") == 0
+                         and call("GET", f"/api/events/{event['id']}")[1].get("currentParticipants") == 0)
+    check("user → Kafka → 글 작성자 익명화 · 좋아요 취소 · 다가오는 신청 취소(자리 반환)", cleaned,
+          f"{own['id']} {liked['id']} {event['id']}")
+    s, _, _ = call("POST", "/api/users/register", {"email": email, "password": "password123", "name": "다시가입"})
+    check("같은 이메일로 다시 가입 201", s == 201, s)
+
+
 def unread_count(token, at_least, timeout=30):
     """알림은 Kafka 를 거쳐 비동기로 만들어지므로 기다리며 확인한다."""
     deadline = time.time() + timeout
@@ -517,6 +548,7 @@ SCENARIOS = {
     "domain-events": scenario_domain_events,
     "moderation": scenario_moderation,
     "rename": scenario_rename,
+    "withdrawal": scenario_withdrawal,
     "docs": scenario_docs,
     "rate-limit": scenario_rate_limit,  # 한도를 소진하므로 마지막에
 }
