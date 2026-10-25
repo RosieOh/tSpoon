@@ -9,6 +9,8 @@ public final class EventEventTypes {
     public static final String EVENT_REMINDER = "EVENT_REMINDER";
     /** 신청한 행사가 취소됐다 */
     public static final String EVENT_CANCELLED = "EVENT_CANCELLED";
+    /** 대기하던 회원의 신청이 자리가 나서 확정됐다 */
+    public static final String WAITLIST_PROMOTED = "EVENT_WAITLIST_PROMOTED";
 
     private EventEventTypes() {
     }
