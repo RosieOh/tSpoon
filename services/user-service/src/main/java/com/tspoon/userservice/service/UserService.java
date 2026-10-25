@@ -34,6 +34,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final EmailVerificationService emailVerificationService;
+    private final LoginAttemptService loginAttemptService;
 
     public UserResponse register(SignupRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -57,9 +58,15 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
+        loginAttemptService.checkNotLocked(request.email());
         User user = userRepository.findByEmail(request.email())
                 .filter(found -> passwordEncoder.matches(request.password(), found.getPassword()))
-                .orElseThrow(() -> new BusinessException(LOGIN_FAILED_MESSAGE, HttpStatus.UNAUTHORIZED));
+                .orElse(null);
+        if (user == null) {
+            loginAttemptService.recordFailure(request.email());
+            throw new BusinessException(LOGIN_FAILED_MESSAGE, HttpStatus.UNAUTHORIZED);
+        }
+        loginAttemptService.reset(request.email());
 
         if (user.getStatus() != User.UserStatus.ACTIVE) {
             throw new BusinessException("비활성화된 계정입니다.", HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED");

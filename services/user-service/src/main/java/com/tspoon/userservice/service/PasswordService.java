@@ -34,6 +34,7 @@ public class PasswordService {
     private final OutboxEventPublisher outboxEventPublisher;
     private final StringRedisTemplate redis;
     private final PasswordResetProperties properties;
+    private final LoginAttemptService loginAttemptService;
 
     /**
      * 재설정 메일 요청. 가입 여부를 드러내지 않도록 호출한 쪽에는 결과와 무관하게 같은 응답을 준다.
@@ -59,6 +60,7 @@ public class PasswordService {
                 .filter(found -> found.getStatus() == User.UserStatus.ACTIVE)
                 .orElseThrow(() -> new BusinessException("재설정 링크가 유효하지 않거나 만료되었습니다. 다시 요청해 주세요."));
         changePassword(user, newPassword);
+        loginAttemptService.reset(user.getEmail()); // 잠긴 계정도 재설정하면 바로 로그인할 수 있다
     }
 
     /** 로그인한 회원의 비밀번호 변경. 다른 기기의 로그인은 모두 끊고, 지금 기기에는 새 토큰을 준다 */
