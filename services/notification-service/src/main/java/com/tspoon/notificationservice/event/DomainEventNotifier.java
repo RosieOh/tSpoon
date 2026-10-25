@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * 다른 서비스의 도메인 이벤트를 받아 알릴 대상을 정하고 앱 내 알림을 만든다. 계정 메일(이메일 인증 등)은 바로 보낸다.
+ * 다른 서비스의 도메인 이벤트를 받아 알릴 대상을 정하고 앱 내 알림을 만든다. 계정 메일(이메일 인증, 비밀번호)은 바로 보낸다.
  *
  * 최소 1회 전달이라 같은 이벤트가 다시 올 수 있으므로, 처리한 eventId 를 알림과 같은 트랜잭션에 기록해 한 번만 만든다.
  * 자기 글에 자기가 남긴 댓글·답변처럼 스스로에게 알릴 일은 만들지 않는다.
@@ -46,6 +46,12 @@ public class DomainEventNotifier {
             case "EMAIL_VERIFICATION_REQUESTED" -> accountMailSender.sendEmailVerification(
                     payload.required("email").asString(), payload.required("name").asString(),
                     payload.required("token").asString(), Instant.parse(payload.required("expiresAt").asString()));
+            case "PASSWORD_RESET_REQUESTED" -> accountMailSender.sendPasswordReset(
+                    payload.required("email").asString(), payload.required("name").asString(),
+                    payload.required("token").asString(), Instant.parse(payload.required("expiresAt").asString()));
+            case "PASSWORD_CHANGED" -> accountMailSender.sendPasswordChanged(
+                    payload.required("email").asString(), payload.required("name").asString(),
+                    Instant.parse(payload.required("changedAt").asString()));
             default -> log.debug("알림 대상이 아닌 이벤트 {} — 건너뜁니다", eventType);
         }
     }

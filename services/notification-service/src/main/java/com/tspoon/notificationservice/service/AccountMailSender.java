@@ -12,14 +12,14 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * 계정 메일(이메일 인증 등). 링크에 일회용 토큰이 들어가므로 알림함(notifications)에 내용을 남기지 않고 바로 보낸다.
+ * 계정 메일(이메일 인증, 비밀번호 재설정·변경 알림). 링크에 일회용 토큰이 들어가므로 알림함(notifications)에 내용을 남기지 않고 바로 보낸다.
  * 발송에 실패하면 예외를 그대로 던져 Kafka 소비자가 다시 시도하게 한다 (끝내 실패하면 DLT, 회원은 재발송을 요청할 수 있다).
  */
 @Component
 @RequiredArgsConstructor
 public class AccountMailSender {
 
-    private static final DateTimeFormatter EXPIRES_AT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    private static final DateTimeFormatter KOREA_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .withZone(ZoneId.of("Asia/Seoul"));
 
     private final JavaMailSender mailSender;
@@ -38,7 +38,28 @@ public class AccountMailSender {
                 %s
 
                 본인이 가입하지 않았다면 이 메일을 무시해 주세요.
-                """.formatted(name, EXPIRES_AT.format(expiresAt), link("/verify-email", token)));
+                """.formatted(name, KOREA_TIME.format(expiresAt), link("/verify-email", token)));
+    }
+
+    public void sendPasswordReset(String email, String name, String token, Instant expiresAt) {
+        send(email, "비밀번호 재설정 안내", """
+                %s님, 비밀번호 재설정을 요청하셨습니다.
+                아래 링크를 열어 새 비밀번호를 정해 주세요. 링크는 %s(한국 시간)까지 한 번만 쓸 수 있습니다.
+
+                %s
+
+                요청하지 않았다면 이 메일을 무시해 주세요. 비밀번호는 바뀌지 않습니다.
+                """.formatted(name, KOREA_TIME.format(expiresAt), link("/reset-password", token)));
+    }
+
+    public void sendPasswordChanged(String email, String name, Instant changedAt) {
+        send(email, "비밀번호가 변경되었습니다", """
+                %s님, %s(한국 시간)에 계정 비밀번호가 변경되어 모든 기기에서 로그아웃되었습니다.
+
+                본인이 변경하지 않았다면 바로 비밀번호를 재설정해 주세요.
+                %s
+                """.formatted(name, KOREA_TIME.format(changedAt),
+                UriComponentsBuilder.fromUriString(webBaseUrl).path("/forgot-password").toUriString()));
     }
 
     private String link(String path, String token) {

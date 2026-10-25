@@ -129,6 +129,29 @@ def scenario_email_verification():
     check("가입하지 않은 이메일 재발송도 202", s == 202, s)
 
 
+def scenario_password():
+    print("[password] 비밀번호 재설정·변경")
+    _, email, _ = signup_login("비번회원")
+    _, login, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    s, _, _ = call("POST", "/api/users/password-reset/request", {"email": email})
+    text = latest_mail_text(email, "비밀번호 재설정 안내") or ""
+    match = re.search(r"/reset-password\?token=([A-Za-z0-9_-]+)", text)
+    check("재설정 요청 202 → 재설정 메일 도착", s == 202 and match is not None, f"{s} {text[:80]}")
+    s, _, _ = call("POST", "/api/users/password-reset/confirm",
+                   {"token": match.group(1) if match else "missing", "newPassword": "reset-pass-456"})
+    s2, _, _ = call("POST", "/api/users/login", {"email": email, "password": "password123"})
+    s3, relogin, _ = call("POST", "/api/users/login", {"email": email, "password": "reset-pass-456"})
+    s4, _, _ = call("GET", "/api/users/profile", token=login["accessToken"])
+    check("재설정 204 → 옛 비밀번호 401 · 새 비밀번호 200 · 기존 토큰 401(Gateway)", (s, s2, s3, s4) == (204, 401, 200, 401),
+          f"{s} {s2} {s3} {s4}")
+    s, changed, _ = call("PUT", "/api/users/password", {"currentPassword": "reset-pass-456", "newPassword": "change-pass-789"},
+                         token=relogin["accessToken"])
+    s2, _, _ = call("GET", "/api/users/profile", token=relogin["accessToken"])
+    s3, _, _ = call("GET", "/api/users/profile", token=(changed or {}).get("accessToken"))
+    check("변경 200 → 이전 토큰 401 · 응답의 새 토큰 200", (s, s2, s3) == (200, 401, 200), f"{s} {s2} {s3}")
+    check("비밀번호 변경 알림 메일 도착", latest_mail_text(email, "비밀번호가 변경되었습니다") is not None, email)
+
+
 def scenario_roles():
     print("[roles] 초기 관리자·역할 변경·정지")
     admin = admin_token()
@@ -394,6 +417,7 @@ def scenario_docs():
 SCENARIOS = {
     "auth": scenario_auth,
     "email-verification": scenario_email_verification,
+    "password": scenario_password,
     "roles": scenario_roles,
     "tokens": scenario_tokens,
     "privacy": scenario_privacy,
