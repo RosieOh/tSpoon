@@ -89,6 +89,27 @@ class UserEventIntegrationTest {
         assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.status").isEqualTo("ACTIVE");
     }
 
+    @Test
+    void 확정된_회원이_탈퇴하면_자리는_다음_대기자에게_넘어간다() throws Exception {
+        long eventId = createEvent(750L, "주최자", 1);
+        register(751L, "떠날회원", eventId);
+        register(752L, "대기회원", eventId);
+
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "751", EventContracts.envelope(
+                UserEventTypes.WITHDRAWN, "USER", 751, "{\"userId\": 751, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}"));
+
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> assertThat(jdbcTemplate.queryForObject(
+                "SELECT status FROM event_registrations WHERE event_id = ? AND user_id = 752", String.class, eventId))
+                .isEqualTo("REGISTERED"));
+        assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.currentParticipants").isEqualTo(1);
+        assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.status").isEqualTo("FULL");
+    }
+
+    private void register(long userId, String name, long eventId) {
+        assertThat(mvc.post().uri("/api/events/{id}/registrations", eventId).header(HttpHeaders.AUTHORIZATION, bearer(userId, name, "PARENT"))
+                .contentType(MediaType.APPLICATION_JSON).content("{}")).hasStatus(HttpStatus.CREATED);
+    }
+
     private long createEvent(long organizerId, String organizerName, int maxParticipants) throws Exception {
         LocalDateTime start = LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7).withNano(0);
         MvcTestResult created = mvc.post().uri("/api/events").header(HttpHeaders.AUTHORIZATION, bearer(organizerId, organizerName, "TEACHER"))

@@ -369,11 +369,15 @@ def scenario_events():
     _, _, second = signup_login("둘째신청")
     s1, _, _ = call("POST", f"/api/events/{eid}/registrations", {}, token=first)
     s2, body, _ = call("POST", f"/api/events/{eid}/registrations", {}, token=second)
-    check("첫 신청 201 · 정원 마감 409", (s1, s2) == (201, 409), f"{s1} {s2} {body}")
+    check("첫 신청 201 · 정원이 차면 대기 201 (1번)", (s1, s2) == (201, 201) and body["status"] == "WAITLISTED"
+          and body["waitlistPosition"] == 1, f"{s1} {s2} {body}")
     s3, _, _ = call("DELETE", f"/api/events/{eid}/registrations/me", token=first)
-    s4, _, _ = call("POST", f"/api/events/{eid}/registrations", {}, token=second)
+    _, mine, _ = call("GET", "/api/events/registrations/me", token=second)
     _, detail, _ = call("GET", f"/api/events/{eid}")
-    check("취소 204 → 자리 반환 → 둘째 신청 201 · 다시 FULL", (s3, s4) == (204, 201) and detail["status"] == "FULL", f"{s3} {s4} {detail.get('status')}")
+    check("확정 취소 204 → 대기 1번이 자리를 넘겨받음 · 계속 FULL", s3 == 204 and mine["content"][0]["status"] == "REGISTERED"
+          and detail["status"] == "FULL", f"{s3} {mine['content'][:1]} {detail.get('status')}")
+    check("대기 확정 알림 (event → Kafka → notification)",
+          wait_until(lambda: "대기하던 행사 신청이 확정되었습니다" in notification_titles(second)), notification_titles(second))
 
 
 def scenario_notifications():

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/EVENT_WAITLIST_PROMOTED.schema.json",
+  "title": "대기하던 신청이 확정됐다",
+  "description": "event-service → tspoon.event.events. 확정된 신청이 취소되거나 정원이 늘어 자리가 나면 먼저 대기한 순서대로 확정한다.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "title",
+    "startDate",
+    "userId"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "startDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
+    },
+    "userId": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": true
+}

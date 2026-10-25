@@ -54,6 +54,7 @@ public class DomainEventNotifier {
             case QnaEventTypes.ANSWER_ACCEPTED -> onAnswerAccepted(payload);
             case EventEventTypes.EVENT_REMINDER -> onEventReminder(payload);
             case EventEventTypes.EVENT_CANCELLED -> onEventCancelled(payload);
+            case EventEventTypes.WAITLIST_PROMOTED -> onWaitlistPromoted(payload);
             case UserEventTypes.EMAIL_VERIFICATION_REQUESTED -> accountMailSender.sendEmailVerification(
                     payload.required("email").asString(), payload.required("name").asString(),
                     payload.required("token").asString(), Instant.parse(payload.required("expiresAt").asString()));
@@ -121,6 +122,13 @@ public class DomainEventNotifier {
         String content = "[" + event.required("title").asString() + "] " + startsAt(event) + " 행사가 취소되었습니다.";
         event.required("recipientIds").forEach(recipient -> notify(recipient.asLong(), "신청한 행사가 취소되었습니다", content,
                 NotificationType.EVENT, "/events/" + eventId, "EVENT", eventId));
+    }
+
+    private void onWaitlistPromoted(JsonNode event) {
+        long eventId = event.required("eventId").asLong();
+        notify(event.required("userId").asLong(), "대기하던 행사 신청이 확정되었습니다",
+                "[" + event.required("title").asString() + "] " + startsAt(event) + " 자리가 생겨 신청이 확정되었습니다.",
+                NotificationType.EVENT, "/events/" + eventId, "EVENT", eventId);
     }
 
     // 행사 일정은 현지(한국) 시각이라 시간대 변환 없이 그대로 보여 준다

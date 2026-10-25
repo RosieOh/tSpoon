@@ -1,9 +1,11 @@
 package com.tspoon.eventservice.repository;
 
 import com.tspoon.eventservice.entity.Event;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,8 +14,13 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
+
+    // 같은 행사의 신청·취소를 줄 세운다 (자리가 나는 순간과 대기 등록이 엇갈리지 않게)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Event> findLockedById(Long id);
 
     // 다가오는 행사부터
     @Query("""

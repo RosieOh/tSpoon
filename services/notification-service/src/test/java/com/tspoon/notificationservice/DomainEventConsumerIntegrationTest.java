@@ -203,6 +203,19 @@ class DomainEventConsumerIntegrationTest {
     }
 
     @Test
+    void 대기하던_신청이_확정되면_그_회원에게_알린다() {
+        long waiting = IDS.incrementAndGet();
+        send(DomainEventListener.EVENT_TOPIC, "33", envelope(UUID.randomUUID(), "EVENT_WAITLIST_PROMOTED", """
+                {"eventId": 33, "title": "학부모 세미나", "startDate": "2026-11-02T10:00:00", "userId": %d}
+                """.formatted(waiting)));
+
+        assertThat(awaitNotifications(waiting, 1)).singleElement().satisfies(n -> {
+            assertThat(n.getTitle()).isEqualTo("대기하던 행사 신청이 확정되었습니다");
+            assertThat(n.getContent()).isEqualTo("[학부모 세미나] 11월 2일 (월) 10:00 자리가 생겨 신청이 확정되었습니다.");
+        });
+    }
+
+    @Test
     void 탈퇴한_회원의_알림은_모두_지운다() {
         long boardAuthor = IDS.incrementAndGet();
         send(DomainEventListener.COMMUNITY_TOPIC, "15", commentCreated(UUID.randomUUID(), 15, boardAuthor, null, IDS.incrementAndGet()));

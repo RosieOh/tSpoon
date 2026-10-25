@@ -3,10 +3,12 @@ package com.tspoon.eventservice;
 import com.jayway.jsonpath.JsonPath;
 import com.tspoon.auth.AuthUser;
 import com.tspoon.auth.jwt.JwtUtil;
-import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.eventservice.dto.RegistrationRequest;
+import com.tspoon.eventservice.dto.RegistrationResponse;
 import com.tspoon.eventservice.entity.EventRegistration;
+import com.tspoon.eventservice.event.EventEvents;
 import com.tspoon.eventservice.repository.EventRegistrationRepository;
 import com.tspoon.eventservice.service.EventService;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.json.AbstractJsonContentAssert;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
@@ -53,28 +57,29 @@ class EventApiIntegrationTest {
     @Autowired
     EventRegistrationRepository registrationRepository;
 
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
     @Test
-    void 정원_10명_행사에_50명이_동시에_신청해도_10명만_성공한다() throws Exception {
+    void 정원_10명_행사에_50명이_동시에_신청하면_10명은_확정되고_40명은_겹치지_않는_순번으로_대기한다() throws Exception {
         long eventId = createEvent(10, null, null);
 
         CountDownLatch start = new CountDownLatch(1);
-        long succeeded;
+        List<RegistrationResponse> responses;
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<Future<Boolean>> results = LongStream.rangeClosed(1, 50).mapToObj(i -> executor.submit(() -> {
+            List<Future<RegistrationResponse>> results = LongStream.rangeClosed(1, 50).mapToObj(i -> executor.submit(() -> {
                 start.await();
-                try {
-                    eventService.register(new AuthUser(10_000 + i, "u" + i + "@tspoon.com", "신청자" + i, "PARENT"),
-                            eventId, new RegistrationRequest(null, null));
-                    return true;
-                } catch (BusinessException e) {
-                    return false;
-                }
+                return eventService.register(new AuthUser(10_000 + i, "u" + i + "@tspoon.com", "신청자" + i, "PARENT"),
+                        eventId, new RegistrationRequest(null, null));
             })).toList();
             start.countDown();
-            succeeded = results.stream().filter(EventApiIntegrationTest::get).count();
+            responses = results.stream().map(EventApiIntegrationTest::get).toList();
         }
 
-        assertThat(succeeded).isEqualTo(10);
+        assertThat(responses).filteredOn(r -> r.status() == EventRegistration.RegistrationStatus.REGISTERED).hasSize(10);
+        assertThat(responses).filteredOn(r -> r.status() == EventRegistration.RegistrationStatus.WAITLISTED)
+                .extracting(RegistrationResponse::waitlistPosition)
+                .containsExactlyInAnyOrderElementsOf(LongStream.rangeClosed(1, 40).boxed().toList());
         assertThat(registrationRepository.countByEventIdAndStatus(eventId, EventRegistration.RegistrationStatus.REGISTERED))
                 .isEqualTo(10);
         MvcTestResult event = mvc.get().uri("/api/events/{id}", eventId).exchange();
@@ -90,21 +95,69 @@ class EventApiIntegrationTest {
 
         assertThat(register(PARENT, eventId)).hasStatus(HttpStatus.CREATED);
         assertThat(register(PARENT, eventId)).hasStatus(HttpStatus.CONFLICT); // 중복
-        assertThat(register(other, eventId)).hasStatus(HttpStatus.CONFLICT); // 정원 마감
         assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.status").isEqualTo("FULL");
 
-        assertThat(mvc.delete().uri("/api/events/{id}/registrations/me", eventId).header(HttpHeaders.AUTHORIZATION, bearer(PARENT)))
-                .hasStatus(HttpStatus.NO_CONTENT);
+        assertThat(cancelRegistration(PARENT, eventId)).hasStatus(HttpStatus.NO_CONTENT);
         assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.status").isEqualTo("ACTIVE");
 
         assertThat(register(other, eventId)).hasStatus(HttpStatus.CREATED);
-        assertThat(mvc.delete().uri("/api/events/{id}/registrations/me", eventId).header(HttpHeaders.AUTHORIZATION, bearer(other)))
-                .hasStatus(HttpStatus.NO_CONTENT);
+        assertThat(cancelRegistration(other, eventId)).hasStatus(HttpStatus.NO_CONTENT);
         assertThat(register(PARENT, eventId)).hasStatus(HttpStatus.CREATED); // 취소했던 신청을 되살림
 
         assertThat(mvc.get().uri("/api/events/registrations/me").header(HttpHeaders.AUTHORIZATION, bearer(PARENT)))
                 .hasStatusOk().bodyJson().extractingPath("$.content[0].eventId").asNumber()
                 .satisfies(id -> assertThat(id.longValue()).isEqualTo(eventId));
+    }
+
+    @Test
+    void 정원이_차면_대기_순번을_받고_확정된_신청이_취소되면_먼저_대기한_사람이_자리를_넘겨받는다() throws Exception {
+        long eventId = createEvent(1, null, null);
+        AuthUser first = new AuthUser(310L, "w1@tspoon.com", "대기1", "PARENT");
+        AuthUser second = new AuthUser(311L, "w2@tspoon.com", "대기2", "PARENT");
+        AuthUser third = new AuthUser(312L, "w3@tspoon.com", "대기3", "PARENT");
+
+        assertThat(register(PARENT, eventId)).hasStatus(HttpStatus.CREATED).bodyJson().extractingPath("$.status").isEqualTo("REGISTERED");
+        assertThat(register(first, eventId)).hasStatus(HttpStatus.CREATED)
+                .bodyJson().extractingPath("$.waitlistPosition").isEqualTo(1);
+        assertThat(register(second, eventId)).bodyJson().extractingPath("$.waitlistPosition").isEqualTo(2);
+        assertThat(register(second, eventId)).hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.detail").isEqualTo("이미 대기 중인 행사입니다.");
+
+        // 대기를 취소하면 뒤 사람의 순번이 당겨진다
+        assertThat(cancelRegistration(first, eventId)).hasStatus(HttpStatus.NO_CONTENT);
+        assertThat(register(third, eventId)).bodyJson().extractingPath("$.waitlistPosition").isEqualTo(2);
+        myRegistration(second).extractingPath("$.content[0].waitlistPosition").isEqualTo(1);
+
+        // 확정된 신청을 취소하면 자리는 그대로 다음 대기자에게
+        assertThat(cancelRegistration(PARENT, eventId)).hasStatus(HttpStatus.NO_CONTENT);
+        myRegistration(second).extractingPath("$.content[0].status").isEqualTo("REGISTERED");
+        myRegistration(third).extractingPath("$.content[0].waitlistPosition").isEqualTo(1);
+        MvcTestResult event = mvc.get().uri("/api/events/{id}", eventId).exchange();
+        assertThat(event).bodyJson().extractingPath("$.currentParticipants").isEqualTo(1);
+        assertThat(event).bodyJson().extractingPath("$.status").isEqualTo("FULL");
+        assertThat(promotedUserIds(eventId)).containsExactly(second.userId());
+    }
+
+    @Test
+    void 정원을_늘리면_늘어난_자리만큼_대기자를_순서대로_확정한다() throws Exception {
+        long eventId = createEvent(1, null, null);
+        AuthUser first = new AuthUser(320L, "g1@tspoon.com", "대기1", "PARENT");
+        AuthUser second = new AuthUser(321L, "g2@tspoon.com", "대기2", "PARENT");
+        AuthUser third = new AuthUser(322L, "g3@tspoon.com", "대기3", "PARENT");
+        register(PARENT, eventId);
+        register(first, eventId);
+        register(second, eventId);
+        register(third, eventId);
+
+        assertThat(mvc.put().uri("/api/events/{id}", eventId).header(HttpHeaders.AUTHORIZATION, bearer(ORGANIZER))
+                .contentType(MediaType.APPLICATION_JSON).content(eventJson(3, null, null)))
+                .hasStatusOk().bodyJson().extractingPath("$.currentParticipants").isEqualTo(3);
+
+        myRegistration(first).extractingPath("$.content[0].status").isEqualTo("REGISTERED");
+        myRegistration(second).extractingPath("$.content[0].status").isEqualTo("REGISTERED");
+        myRegistration(third).extractingPath("$.content[0].waitlistPosition").isEqualTo(1);
+        assertThat(promotedUserIds(eventId)).containsExactly(first.userId(), second.userId());
+        assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.status").isEqualTo("FULL");
     }
 
     @Test
@@ -182,12 +235,29 @@ class EventApiIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON).content(json).exchange();
     }
 
+    private MvcTestResult cancelRegistration(AuthUser user, long eventId) {
+        return mvc.delete().uri("/api/events/{id}/registrations/me", eventId).header(HttpHeaders.AUTHORIZATION, bearer(user)).exchange();
+    }
+
+    private AbstractJsonContentAssert<?> myRegistration(AuthUser user) {
+        return assertThat(mvc.get().uri("/api/events/registrations/me").header(HttpHeaders.AUTHORIZATION, bearer(user)))
+                .hasStatusOk().bodyJson();
+    }
+
+    private List<Long> promotedUserIds(long eventId) {
+        List<String> payloads = jdbcTemplate.queryForList("""
+                SELECT payload::text FROM outbox_events WHERE event_type = ? AND aggregate_id = ? ORDER BY created_at
+                """, String.class, EventEvents.WAITLIST_PROMOTED, String.valueOf(eventId));
+        payloads.forEach(payload -> EventContracts.assertPayloadConforms(EventEvents.WAITLIST_PROMOTED, payload));
+        return payloads.stream().map(payload -> JsonPath.<Number>read(payload, "$.userId").longValue()).toList();
+    }
+
     private MvcTestResult register(AuthUser user, long eventId) {
         return mvc.post().uri("/api/events/{id}/registrations", eventId).header(HttpHeaders.AUTHORIZATION, bearer(user))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"notes\": \"참석합니다\"}").exchange();
     }
 
-    private static boolean get(Future<Boolean> future) {
+    private static <T> T get(Future<T> future) {
         try {
             return future.get();
         } catch (Exception e) {
