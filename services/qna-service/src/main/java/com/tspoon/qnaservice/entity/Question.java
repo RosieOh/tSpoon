@@ -72,6 +72,10 @@ public class Question {
     @Column
     private Long acceptedAnswerId; // 채택된 답변 ID
     
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_before_hidden")
+    private QuestionStatus statusBeforeHidden; // 숨김을 풀 때 돌아갈 상태
+    
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Answer> answers = new ArrayList<>();
@@ -101,7 +105,8 @@ public class Question {
         OPEN,           // 답변 대기
         ANSWERED,       // 답변 완료
         CLOSED,         // 질문 종료
-        DELETED         // 삭제됨
+        DELETED,        // 삭제됨
+        HIDDEN          // 신고·운영 정책으로 숨김
     }
     
     public enum Priority {

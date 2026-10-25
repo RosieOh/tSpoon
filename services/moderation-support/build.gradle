@@ -1,0 +1,15 @@
+// 신고·숨김 — 게시글·댓글(community), 질문·답변(qna)이 같은 규칙을 쓴다.
+// 신고 저장은 JdbcTemplate 로 하고, reports 테이블은 각 서비스의 Flyway 마이그레이션이 만든다 (outbox-support 와 같은 방식).
+plugins {
+    id 'tspoon.java-library'
+}
+
+dependencies {
+    implementation project(':services:core-service')
+    implementation 'org.springframework:spring-jdbc'
+    implementation 'org.springframework:spring-tx'
+    implementation 'org.springframework.data:spring-data-commons'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}

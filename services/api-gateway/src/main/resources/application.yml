@@ -27,7 +27,7 @@ spring:
             - id: community-service
               uri: ${COMMUNITY_SERVICE_URI:lb://community-service}
               predicates:
-                - Path=/api/boards/**,/api/comments/**,/api/likes/**
+                - Path=/api/boards/**,/api/comments/**,/api/likes/**,/api/admin/reports/boards/**,/api/admin/reports/comments/**
 
             - id: education-service
               uri: ${EDUCATION_SERVICE_URI:lb://education-service}
@@ -37,7 +37,7 @@ spring:
             - id: qna-service
               uri: ${QNA_SERVICE_URI:lb://qna-service}
               predicates:
-                - Path=/api/questions/**,/api/answers/**
+                - Path=/api/questions/**,/api/answers/**,/api/admin/reports/questions/**,/api/admin/reports/answers/**
 
             - id: event-service
               uri: ${EVENT_SERVICE_URI:lb://event-service}

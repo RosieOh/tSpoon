@@ -5,4 +5,6 @@ plugins {
 dependencies {
     // 댓글·답변 등 도메인 이벤트를 Transactional Outbox 로 Kafka 에 발행
     implementation project(':services:outbox-support')
+    // 질문·답변 신고와 숨김
+    implementation project(':services:moderation-support')
 }
