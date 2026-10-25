@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
         "eureka.client.enabled=false",
+        "tspoon.outbox.relay-enabled=false",
         "tspoon.admin.email=" + TokenApiIntegrationTest.ADMIN_EMAIL,
         "tspoon.admin.password=" + TokenApiIntegrationTest.ADMIN_PASSWORD
 })
@@ -47,6 +49,9 @@ class TokenApiIntegrationTest {
 
     @Autowired
     StringRedisTemplate redis;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     @Test
     void 로그인하면_30분짜리_Access_Token과_14일짜리_Refresh_Token을_받는다() throws Exception {
@@ -138,6 +143,7 @@ class TokenApiIntegrationTest {
         assertThat(post("/api/users/register", null, """
                 {"email": "%s", "password": "password123", "name": "회원"}
                 """.formatted(email))).hasStatus(HttpStatus.CREATED);
+        TestAccounts.verifyEmail(jdbcTemplate, email);
         return email;
     }
 
