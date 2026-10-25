@@ -102,6 +102,19 @@ class FileIntegrationTest {
     }
 
     @Test
+    void 내용으로_형식을_알_수_없는_바이트도_요청한_형식으로_올라간다() throws Exception {
+        String owner = newUser();
+        byte[] data = new byte[1024];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) i;
+        }
+        MvcTestResult ticket = requestUpload(owner, "자료.pdf", "application/pdf", data.length);
+
+        assertThat(put(read(ticket, "$.uploadUrl"), "application/pdf", data)).isEqualTo(200);
+        assertThat(complete(owner, read(ticket, "$.fileId"))).hasStatusOk();
+    }
+
+    @Test
     void 서명에_든_형식과_다르게_올리면_저장소가_거절한다() throws Exception {
         String owner = newUser();
         MvcTestResult ticket = requestUpload(owner, "a.png", "image/png", PNG.length);

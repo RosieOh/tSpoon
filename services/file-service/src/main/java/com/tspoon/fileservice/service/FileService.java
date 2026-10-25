@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -81,10 +82,12 @@ public class FileService {
         HeadObjectResponse uploaded = storage.head(file.getStorageKey())
                 .orElseThrow(() -> new BusinessException("아직 저장소에 올라간 파일이 없습니다. 업로드 URL 로 먼저 올려 주세요.",
                         HttpStatus.CONFLICT));
-        boolean sameSize = uploaded.contentLength() != null && uploaded.contentLength() == file.getSize();
+        boolean sameSize = Objects.equals(uploaded.contentLength(), file.getSize()); // Long 끼리 == 는 참조 비교다
         boolean sameType = uploaded.contentType() != null
                 && uploaded.contentType().toLowerCase(Locale.ROOT).startsWith(file.getContentType());
         if (!sameSize || !sameType) {
+            log.info("파일 {} 확인 실패 — 요청 {}·{}바이트, 실제 {}·{}바이트", id, file.getContentType(), file.getSize(),
+                    uploaded.contentType(), uploaded.contentLength());
             storage.delete(file.getStorageKey());
             throw new BusinessException("올라간 파일이 요청한 크기·형식과 다릅니다. 다시 올려 주세요.");
         }
