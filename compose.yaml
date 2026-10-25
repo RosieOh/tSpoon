@@ -217,13 +217,15 @@ services:
       dockerfile: docker/Dockerfile
       args: { SERVICE: notification-service, PORT: 8086 }
     environment:
-      <<: *domain-service-env
+      <<: [*domain-service-env, *redis-env]
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
       WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
     depends_on:
       <<: *domain-service-depends-on
       kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

@@ -3,6 +3,7 @@ package com.tspoon.notificationservice;
 import com.jayway.jsonpath.JsonPath;
 import com.tspoon.auth.AuthUser;
 import com.tspoon.auth.jwt.JwtUtil;
+import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
 import com.tspoon.notificationservice.entity.Notification;
 import com.tspoon.notificationservice.repository.NotificationRepository;
@@ -28,7 +29,7 @@ import static org.awaitility.Awaitility.await;
 
 @SpringBootTest(properties = {"eureka.client.enabled=false", "spring.kafka.listener.auto-startup=false"})
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, RedisTestcontainersConfiguration.class})
 class NotificationApiIntegrationTest {
 
     @DynamicPropertySource
