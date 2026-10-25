@@ -68,6 +68,23 @@ class QnaEventIntegrationTest {
     KafkaContainer kafka;
 
     @Test
+    void 탈퇴한_회원의_질문과_답변은_익명으로_남는다() throws Exception {
+        AuthUser leaving = new AuthUser(620L, "leaving@tspoon.com", "떠날회원", "EXPERT");
+        long questionId = id(post(leaving, "/api/questions",
+                "{\"title\": \"남길 질문\", \"content\": \"내용\", \"category\": \"LEARNING\"}"));
+        long answerId = id(post(leaving, "/api/questions/" + questionId + "/answers", "{\"content\": \"남길 답변\"}"));
+
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "620", KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 620, "{\"userId\": 620, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}"));
+
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
+            assertThat(jdbcTemplate.queryForObject("SELECT author_name FROM questions WHERE id = ?", String.class, questionId))
+                    .isEqualTo("탈퇴한 회원");
+            assertThat(jdbcTemplate.queryForObject("SELECT author_name FROM answers WHERE id = ?", String.class, answerId))
+                    .isEqualTo("탈퇴한 회원");
+        });
+    }
+
+    @Test
     void 답변과_채택이_질문_ID_를_키로_Kafka_에_발행된다() throws Exception {
         long questionId = id(post(ASKER, "/api/questions",
                 "{\"title\": \"이벤트 질문\", \"content\": \"내용\", \"category\": \"LEARNING\"}"));

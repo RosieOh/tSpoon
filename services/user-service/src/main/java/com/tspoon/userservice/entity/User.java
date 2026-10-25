@@ -63,6 +63,9 @@ public class User {
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt; // null 이면 이메일 미인증 — 로그인할 수 없다
     
+    @Column(name = "withdrawn_at")
+    private Instant withdrawnAt;
+    
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Child> children = new ArrayList<>();
@@ -87,6 +90,7 @@ public class User {
     }
     
     public enum UserStatus {
-        ACTIVE, INACTIVE, SUSPENDED
+        ACTIVE, INACTIVE, SUSPENDED,
+        WITHDRAWN   // 탈퇴 — 개인정보를 지우고 되돌릴 수 없다
     }
 }

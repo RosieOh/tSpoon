@@ -118,6 +118,11 @@ public class NotificationService {
         return notificationRepository.markAllRead(user.userId(), Instant.now());
     }
 
+    // 탈퇴한 회원의 알림은 남길 이유가 없다
+    public int deleteAllOf(Long userId) {
+        return notificationRepository.deleteAllByUserId(userId);
+    }
+
     public record EmailNotificationRequested(Long notificationId, String email, String title, String content, String actionUrl) {
     }
 }

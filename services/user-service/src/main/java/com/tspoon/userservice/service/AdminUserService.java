@@ -33,6 +33,9 @@ public class AdminUserService {
 
     // 정지·비활성화하면 이미 발급된 Access·Refresh Token 을 모두 폐기한다
     public UserResponse changeStatus(AuthUser admin, Long userId, User.UserStatus status) {
+        if (status == User.UserStatus.WITHDRAWN) {
+            throw new BusinessException("탈퇴는 회원 본인만 할 수 있습니다.");
+        }
         User user = findOtherUser(admin, userId);
         user.setStatus(status);
         UserResponse response = UserResponse.from(userRepository.saveAndFlush(user));
@@ -47,7 +50,11 @@ public class AdminUserService {
         if (admin.userId().equals(userId)) {
             throw new BusinessException("자기 자신의 역할·상태는 바꿀 수 없습니다.", HttpStatus.BAD_REQUEST);
         }
-        return userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
+        if (user.getStatus() == User.UserStatus.WITHDRAWN) {
+            throw new BusinessException("탈퇴한 회원은 바꿀 수 없습니다.", HttpStatus.CONFLICT);
+        }
+        return user;
     }
 }

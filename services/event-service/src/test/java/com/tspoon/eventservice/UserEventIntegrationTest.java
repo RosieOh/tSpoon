@@ -48,16 +48,7 @@ class UserEventIntegrationTest {
 
     @Test
     void 회원_이름이_바뀌면_주최자와_신청자에_복사해_둔_이름도_바뀐다() throws Exception {
-        LocalDateTime start = LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7).withNano(0);
-        MvcTestResult created = mvc.post().uri("/api/events").header(HttpHeaders.AUTHORIZATION, bearer(720L, "옛주최자", "TEACHER"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        {"title": "이름 바꿀 행사", "description": "설명", "type": "SEMINAR",
-                         "startDate": "%s", "endDate": "%s", "location": "서울", "maxParticipants": 10}
-                        """.formatted(start, start.plusHours(2)))
-                .exchange();
-        assertThat(created).hasStatus(HttpStatus.CREATED);
-        long eventId = JsonPath.<Number>read(created.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.id").longValue();
+        long eventId = createEvent(720L, "옛주최자", 10);
         assertThat(mvc.post().uri("/api/events/{id}/registrations", eventId).header(HttpHeaders.AUTHORIZATION, bearer(721L, "옛신청자", "PARENT"))
                 .contentType(MediaType.APPLICATION_JSON).content("{}")).hasStatus(HttpStatus.CREATED);
 
@@ -70,6 +61,44 @@ class UserEventIntegrationTest {
             assertThat(jdbcTemplate.queryForObject("SELECT user_name FROM event_registrations WHERE event_id = ?", String.class, eventId))
                     .isEqualTo("새신청자");
         });
+    }
+
+    @Test
+    void 탈퇴한_회원의_다가오는_신청은_취소돼_자리가_한_번만_돌아오고_신청_내역의_개인정보는_지워진다() throws Exception {
+        long eventId = createEvent(740L, "떠날주최자", 1);
+        assertThat(mvc.post().uri("/api/events/{id}/registrations", eventId).header(HttpHeaders.AUTHORIZATION, bearer(741L, "떠날회원", "PARENT"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"notes\": \"아이 둘\", \"contactInfo\": \"010-0000-0000\"}"))
+                .hasStatus(HttpStatus.CREATED);
+        assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.status").isEqualTo("FULL");
+
+        String withdrawn = KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 741, "{\"userId\": 741, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "741", withdrawn);
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "741", withdrawn);
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "740", KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 740, "{\"userId\": 740, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}"));
+
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
+            assertThat(jdbcTemplate.queryForMap("SELECT status, user_name, notes, contact_info FROM event_registrations WHERE event_id = ?", eventId))
+                    .containsEntry("status", "CANCELLED").containsEntry("user_name", "탈퇴한 회원")
+                    .containsEntry("notes", null).containsEntry("contact_info", null);
+            assertThat(jdbcTemplate.queryForObject("SELECT organizer_name FROM events WHERE id = ?", String.class, eventId))
+                    .isEqualTo("탈퇴한 회원");
+        });
+        Thread.sleep(1_000); // 두 번째 탈퇴 이벤트까지 처리될 시간
+        assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.currentParticipants").isEqualTo(0);
+        assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.status").isEqualTo("ACTIVE");
+    }
+
+    private long createEvent(long organizerId, String organizerName, int maxParticipants) throws Exception {
+        LocalDateTime start = LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7).withNano(0);
+        MvcTestResult created = mvc.post().uri("/api/events").header(HttpHeaders.AUTHORIZATION, bearer(organizerId, organizerName, "TEACHER"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title": "회원 이벤트 행사", "description": "설명", "type": "SEMINAR",
+                         "startDate": "%s", "endDate": "%s", "location": "서울", "maxParticipants": %d}
+                        """.formatted(start, start.plusHours(2), maxParticipants))
+                .exchange();
+        assertThat(created).hasStatus(HttpStatus.CREATED);
+        return JsonPath.<Number>read(created.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.id").longValue();
     }
 
     private void rename(long userId, String name) {

@@ -30,6 +30,10 @@ public class UserEventListener {
                 String name = payload.required("name").asString();
                 handlers.forEach(handler -> handler.onProfileUpdated(userId, name));
             }
+            case UserEventTypes.WITHDRAWN -> {
+                long userId = payload.required("userId").asLong();
+                handlers.forEach(handler -> handler.onWithdrawn(userId));
+            }
             default -> log.trace("처리하지 않는 회원 이벤트 {} — 건너뜁니다", event.eventType());
         }
     }

@@ -105,6 +105,32 @@ class CommentEventIntegrationTest {
     }
 
     @Test
+    void 탈퇴한_회원의_글은_익명으로_남고_좋아요는_지워져_같은_이벤트가_다시_와도_한_번만_줄어든다() throws Exception {
+        String leaving = bearer(530L, "떠날회원");
+        long ownBoard = id(post(leaving, "/api/boards", "{\"title\": \"남길 글\", \"content\": \"본문\", \"category\": \"GENERAL\"}"));
+        post(leaving, "/api/boards/" + ownBoard + "/comments", "{\"content\": \"남길 댓글\"}");
+        long otherBoard = id(post(bearer(531L, "남는회원"), "/api/boards",
+                "{\"title\": \"좋아요 받은 글\", \"content\": \"본문\", \"category\": \"GENERAL\"}"));
+        assertThat(mvc.post().uri("/api/boards/{id}/like", otherBoard).header(HttpHeaders.AUTHORIZATION, leaving)).hasStatusOk();
+        assertThat(mvc.post().uri("/api/boards/{id}/like", otherBoard).header(HttpHeaders.AUTHORIZATION, bearer(532L, "다른회원")))
+                .hasStatusOk();
+
+        String withdrawn = KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 530, "{\"userId\": 530, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "530", withdrawn);
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "530", withdrawn);
+
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
+            assertThat(jdbcTemplate.queryForObject("SELECT author_name FROM boards WHERE id = ?", String.class, ownBoard))
+                    .isEqualTo("탈퇴한 회원");
+            assertThat(jdbcTemplate.queryForObject("SELECT author_name FROM comments WHERE board_id = ?", String.class, ownBoard))
+                    .isEqualTo("탈퇴한 회원");
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM board_likes WHERE user_id = 530", Long.class)).isZero();
+        });
+        Thread.sleep(1_000); // 두 번째 탈퇴 이벤트까지 처리될 시간
+        assertThat(jdbcTemplate.queryForObject("SELECT like_count FROM boards WHERE id = ?", Integer.class, otherBoard)).isEqualTo(1);
+    }
+
+    @Test
     void 트랜잭션이_롤백되면_이벤트도_함께_사라진다() {
         String marker = "rollback-" + UUID.randomUUID();
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);

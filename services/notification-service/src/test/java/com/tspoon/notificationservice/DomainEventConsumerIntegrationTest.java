@@ -173,6 +173,19 @@ class DomainEventConsumerIntegrationTest {
         assertThat(mailText(messages, "[티스푼] 비밀번호가 변경되었습니다")).contains("2026-10-27 00:10(한국 시간)");
     }
 
+    @Test
+    void 탈퇴한_회원의_알림은_모두_지운다() {
+        long boardAuthor = IDS.incrementAndGet();
+        send(DomainEventListener.COMMUNITY_TOPIC, "15", commentCreated(UUID.randomUUID(), 15, boardAuthor, null, IDS.incrementAndGet()));
+        awaitNotifications(boardAuthor, 1);
+
+        send(DomainEventListener.USER_TOPIC, String.valueOf(boardAuthor), envelope(UUID.randomUUID(), "USER_WITHDRAWN", """
+                {"userId": %d, "withdrawnAt": "2026-10-26T00:00:00Z"}
+                """.formatted(boardAuthor)));
+
+        await().atMost(Duration.ofSeconds(20)).until(() -> notificationsOf(boardAuthor).isEmpty());
+    }
+
     private static String mailText(String messages, String subject) throws Exception {
         List<String> ids = JsonPath.read(messages, "$.messages[?(@.Subject == '" + subject + "')].ID");
         return JsonPath.read(Mailpit.api("/api/v1/message/" + ids.getFirst()), "$.Text");
