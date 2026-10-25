@@ -5,6 +5,7 @@ import com.tspoon.core.exception.ResourceNotFoundException;
 import com.tspoon.outbox.OutboxEventPublisher;
 import com.tspoon.userservice.entity.User;
 import com.tspoon.userservice.event.UserEvents;
+import com.tspoon.userservice.oauth.SocialAccountRepository;
 import com.tspoon.userservice.repository.ChildRepository;
 import com.tspoon.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class WithdrawalService {
 
     private final UserRepository userRepository;
     private final ChildRepository childRepository;
+    private final SocialAccountRepository socialAccountRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final OutboxEventPublisher outboxEventPublisher;
@@ -49,6 +51,7 @@ public class WithdrawalService {
 
         Instant now = Instant.now();
         childRepository.deleteByParentId(userId);
+        socialAccountRepository.deleteByUserId(userId); // 같은 소셜 계정으로 다시 가입할 수 있게
         user.setEmail("withdrawn-" + userId + "@withdrawn.invalid");
         user.setName(WITHDRAWN_NAME);
         user.setPhone(null);
