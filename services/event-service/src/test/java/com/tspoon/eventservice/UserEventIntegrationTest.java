@@ -30,7 +30,7 @@ import java.time.ZoneId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@SpringBootTest(properties = "eureka.client.enabled=false")
+@SpringBootTest(properties = {"eureka.client.enabled=false", "tspoon.event.reminder.enabled=false"})
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, KafkaTestcontainersConfiguration.class})
 class UserEventIntegrationTest {

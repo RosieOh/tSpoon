@@ -8,7 +8,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
@@ -37,6 +40,23 @@ public interface EventRepository extends JpaRepository<Event, Long> {
               AND (e.maxParticipants IS NULL OR e.currentParticipants < e.maxParticipants)
             """)
     int reserveSeat(@Param("id") Long id);
+
+    // 곧 시작하는데 아직 리마인더를 보내지 않은 행사 — 먼저 시작하는 순
+    @Query("""
+            SELECT e.id FROM Event e
+            WHERE e.status IN :statuses AND e.reminderSentAt IS NULL
+              AND e.startDate > :now AND e.startDate <= :until
+            ORDER BY e.startDate ASC
+            """)
+    List<Long> findIdsDueForReminder(@Param("statuses") Collection<Event.EventStatus> statuses,
+                                     @Param("now") LocalDateTime now,
+                                     @Param("until") LocalDateTime until,
+                                     Pageable pageable);
+
+    // 아직 보내지 않았을 때만 채운다 — 1 이면 이번에 보낼 권리를 얻었다
+    @Modifying
+    @Query("UPDATE Event e SET e.reminderSentAt = :sentAt WHERE e.id = :id AND e.reminderSentAt IS NULL")
+    int claimReminder(@Param("id") Long id, @Param("sentAt") Instant sentAt);
 
     // 자리를 돌려주고, 정원 마감 상태였다면 다시 모집 중으로
     @Modifying(flushAutomatically = true, clearAutomatically = true)

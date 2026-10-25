@@ -27,6 +27,7 @@
 | | `USER_WITHDRAWN` | user | community · qna · education · event · notification (익명화·정리) |
 | `tspoon.community.events` (키: 게시글 ID) | `COMMENT_CREATED` | community | notification |
 | `tspoon.qna.events` (키: 질문 ID) | `ANSWER_CREATED` · `ANSWER_ACCEPTED` | qna | notification |
+| `tspoon.event.events` (키: 행사 ID) | `EVENT_REMINDER` · `EVENT_CANCELLED` | event | notification (받을 회원 목록을 담아 보낸다) |
 
 각 이벤트의 payload 형식은 [`event-schemas/{이벤트}.schema.json`](src/main/resources/event-schemas) (JSON Schema 2020-12).
 

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/EVENT_CANCELLED.schema.json",
+  "title": "신청한 행사가 취소됐다",
+  "description": "event-service → tspoon.event.events. recipientIds 는 취소 시점의 신청자(주최자 제외).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "title",
+    "startDate",
+    "recipientIds"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "startDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
+    },
+    "recipientIds": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}

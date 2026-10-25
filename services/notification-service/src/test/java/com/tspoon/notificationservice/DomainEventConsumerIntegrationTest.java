@@ -55,7 +55,8 @@ class DomainEventConsumerIntegrationTest {
         // 메시지 전송으로 자동 생성된 토픽은 파티션이 1개, 기동 시 선언으로 만든 토픽은 3개
         try (AdminClient admin = AdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()))) {
             Map<String, TopicDescription> topics = admin.describeTopics(
-                    List.of(DomainEventListener.COMMUNITY_TOPIC, DomainEventListener.QNA_TOPIC, DomainEventListener.USER_TOPIC))
+                    List.of(DomainEventListener.COMMUNITY_TOPIC, DomainEventListener.QNA_TOPIC, DomainEventListener.USER_TOPIC,
+                            DomainEventListener.EVENT_TOPIC))
                     .allTopicNames().get();
             assertThat(topics.values()).allSatisfy(topic -> assertThat(topic.partitions()).hasSize(3));
         }
@@ -172,6 +173,33 @@ class DomainEventConsumerIntegrationTest {
         String reset = mailText(messages, "[티스푼] 비밀번호 재설정 안내");
         assertThat(reset).contains("https://tspoon.example/reset-password?token=reset_token-456").contains("2026-10-27 00:30(한국 시간)");
         assertThat(mailText(messages, "[티스푼] 비밀번호가 변경되었습니다")).contains("2026-10-27 00:10(한국 시간)");
+    }
+
+    @Test
+    void 행사_리마인더와_취소는_받을_회원마다_알림을_만든다() {
+        long first = IDS.incrementAndGet();
+        long second = IDS.incrementAndGet();
+
+        send(DomainEventListener.EVENT_TOPIC, "31", envelope(UUID.randomUUID(), "EVENT_REMINDER", """
+                {"eventId": 31, "title": "학부모 세미나", "startDate": "2026-11-02T10:00:00", "location": "서울 시민청",
+                 "recipientIds": [%d, %d]}
+                """.formatted(first, second)));
+        send(DomainEventListener.EVENT_TOPIC, "32", envelope(UUID.randomUUID(), "EVENT_CANCELLED", """
+                {"eventId": 32, "title": "코딩 워크숍", "startDate": "2026-11-03T14:30:00", "recipientIds": [%d]}
+                """.formatted(first)));
+
+        List<Notification> toFirst = awaitNotifications(first, 2);
+        assertThat(toFirst).extracting(Notification::getTitle)
+                .containsExactlyInAnyOrder("신청한 행사가 곧 시작합니다", "신청한 행사가 취소되었습니다");
+        assertThat(toFirst).filteredOn(n -> n.getType() == Notification.NotificationType.REMINDER).singleElement()
+                .satisfies(n -> {
+                    assertThat(n.getContent()).isEqualTo("[학부모 세미나] 11월 2일 (월) 10:00 · 서울 시민청");
+                    assertThat(n.getActionUrl()).isEqualTo("/events/31");
+                });
+        assertThat(toFirst).filteredOn(n -> n.getType() == Notification.NotificationType.EVENT).singleElement()
+                .satisfies(n -> assertThat(n.getContent()).isEqualTo("[코딩 워크숍] 11월 3일 (화) 14:30 행사가 취소되었습니다."));
+        assertThat(awaitNotifications(second, 1)).singleElement()
+                .satisfies(n -> assertThat(n.getTitle()).isEqualTo("신청한 행사가 곧 시작합니다"));
     }
 
     @Test
