@@ -1,3 +1,8 @@
 plugins {
     id 'tspoon.domain-service'
 }
+
+dependencies {
+    // 회원 이벤트(이름 변경 등) 수신과 소비자 공통 오류 처리
+    implementation project(':services:event-support')
+}

@@ -32,7 +32,7 @@ import java.util.stream.LongStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "eureka.client.enabled=false")
+@SpringBootTest(properties = {"eureka.client.enabled=false", "spring.kafka.listener.auto-startup=false"})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class EventApiIntegrationTest {

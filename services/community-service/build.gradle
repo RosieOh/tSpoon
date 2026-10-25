@@ -3,6 +3,8 @@ plugins {
 }
 
 dependencies {
+    // 회원 이벤트(이름 변경 등) 수신과 소비자 공통 오류 처리
+    implementation project(':services:event-support')
     // 댓글·답변 등 도메인 이벤트를 Transactional Outbox 로 Kafka 에 발행
     implementation project(':services:outbox-support')
     // 게시글·댓글 신고와 숨김

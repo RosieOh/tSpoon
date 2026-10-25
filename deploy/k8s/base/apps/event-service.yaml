@@ -39,7 +39,7 @@ spec:
             - sh
             - -c
             - |
-              for dep in postgres:5432; do
+              for dep in postgres:5432 kafka:9092; do
                 until nc -z "${dep%:*}" "${dep#*:}"; do echo "waiting for $dep"; sleep 2; done
               done
       containers:

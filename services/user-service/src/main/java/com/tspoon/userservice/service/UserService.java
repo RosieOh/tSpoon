@@ -2,6 +2,7 @@ package com.tspoon.userservice.service;
 
 import com.tspoon.core.exception.BusinessException;
 import com.tspoon.core.exception.ResourceNotFoundException;
+import com.tspoon.outbox.OutboxEventPublisher;
 import com.tspoon.userservice.dto.LoginRequest;
 import com.tspoon.userservice.dto.LoginResponse;
 import com.tspoon.userservice.dto.LogoutRequest;
@@ -11,6 +12,7 @@ import com.tspoon.userservice.dto.SignupRequest;
 import com.tspoon.userservice.dto.UpdateProfileRequest;
 import com.tspoon.userservice.dto.UserResponse;
 import com.tspoon.userservice.entity.User;
+import com.tspoon.userservice.event.UserEvents;
 import com.tspoon.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -35,6 +37,7 @@ public class UserService {
     private final TokenService tokenService;
     private final EmailVerificationService emailVerificationService;
     private final LoginAttemptService loginAttemptService;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     public UserResponse register(SignupRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -102,13 +105,23 @@ public class UserService {
         return UserResponse.from(findUser(userId));
     }
 
+    /**
+     * 이름이 바뀌면 다른 서비스가 복사해 둔 작성자 이름도 바꾸도록 이벤트를 남기고, 기존 Access Token 을 무효화한다.
+     * 옛 이름이 담긴 토큰으로 새 글을 쓰면 그 글에 옛 이름이 남기 때문이다 — 클라이언트는 401 을 받고 재발급하면 새 이름이 담긴다.
+     */
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
         User user = findUser(userId);
+        boolean renamed = !user.getName().equals(request.name());
 
         user.setName(request.name());
         user.setPhone(request.phone());
         user.setAddress(request.address());
 
+        if (renamed) {
+            outboxEventPublisher.publish(UserEvents.TOPIC, UserEvents.AGGREGATE_USER, userId, UserEvents.PROFILE_UPDATED,
+                    new UserEvents.ProfileUpdated(userId, user.getName()));
+            tokenService.invalidateAccessTokens(userId);
+        }
         return UserResponse.from(user);
     }
 

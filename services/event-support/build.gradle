@@ -1,0 +1,12 @@
+// 서비스 사이 도메인 이벤트의 공통 규약 — 토픽·이벤트 이름, 메시지 봉투, 소비자 오류 처리(재시도·DLT), 회원 이벤트 수신.
+// 발행은 outbox-support 가, 받는 쪽 공통 처리는 이 모듈이 맡는다.
+plugins {
+    id 'tspoon.java-library'
+}
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter-kafka'
+    implementation 'tools.jackson.core:jackson-databind'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-autoconfigure-processor'
+}

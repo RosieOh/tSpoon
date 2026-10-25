@@ -6,7 +6,9 @@ import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
 import com.tspoon.userservice.entity.User;
+import com.tspoon.userservice.event.UserEvents;
 import com.tspoon.userservice.repository.UserRepository;
+import com.tspoon.userservice.service.TokenService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +22,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +44,9 @@ class UserApiIntegrationTest {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    TokenService tokenService;
+
     @Test
     void 회원가입_후_로그인하면_발급된_JWT로_프로필을_조회할_수_있다() throws Exception {
         String email = uniqueEmail();
@@ -59,6 +65,23 @@ class UserApiIntegrationTest {
         assertThat(mvc.get().uri("/api/users/profile").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .hasStatusOk()
                 .bodyJson().extractingPath("$.name").isEqualTo("김부모");
+    }
+
+    @Test
+    void 이름을_바꾸면_다른_서비스에_알릴_이벤트를_남기고_기존_Access_Token_을_무효화한다() throws Exception {
+        Long userId = registerAndGetId(uniqueEmail(), "옛이름");
+        long version = tokenService.currentVersion(userId);
+
+        // 이름이 그대로면 알리지 않는다
+        assertThat(updateProfile(userId, "옛이름")).hasStatusOk();
+        assertThat(profileEvents(userId)).isEmpty();
+        assertThat(tokenService.currentVersion(userId)).isEqualTo(version);
+
+        assertThat(updateProfile(userId, "새이름")).hasStatusOk().bodyJson().extractingPath("$.name").isEqualTo("새이름");
+        assertThat(profileEvents(userId)).singleElement()
+                .satisfies(payload -> assertThat(JsonPath.<String>read(payload, "$.name")).isEqualTo("새이름"));
+        // 옛 이름이 담긴 토큰으로 새 글을 쓰지 못하게 — 재발급하면 새 이름이 담긴다
+        assertThat(tokenService.currentVersion(userId)).isGreaterThan(version);
     }
 
     @Test
@@ -161,6 +184,19 @@ class UserApiIntegrationTest {
         // 로그인 사용자(@AuthenticationPrincipal)와 Authorization 헤더는 요청 파라미터로 노출하지 않는다
         assertThat(docs).bodyJson().doesNotHavePath("$.paths['/api/users/profile'].get.parameters");
         assertThat(docs).bodyJson().doesNotHavePath("$.paths['/api/users/logout'].post.parameters");
+    }
+
+    private MvcTestResult updateProfile(Long userId, String name) {
+        return mvc.put().uri("/api/users/profile").header(HttpHeaders.AUTHORIZATION, bearer(userId, "PARENT"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\": \"%s\"}".formatted(name))
+                .exchange();
+    }
+
+    private List<String> profileEvents(Long userId) {
+        return jdbcTemplate.queryForList("""
+                SELECT payload::text FROM outbox_events WHERE event_type = ? AND aggregate_id = ? ORDER BY created_at
+                """, String.class, UserEvents.PROFILE_UPDATED, String.valueOf(userId));
     }
 
     private Long registerAndGetId(String email, String name) throws Exception {
