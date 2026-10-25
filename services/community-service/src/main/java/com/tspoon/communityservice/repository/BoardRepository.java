@@ -1,9 +1,11 @@
 package com.tspoon.communityservice.repository;
 
 import com.tspoon.communityservice.entity.Board;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +18,10 @@ import java.util.Optional;
 public interface BoardRepository extends JpaRepository<Board, Long> {
 
     Optional<Board> findByIdAndStatus(Long id, Board.BoardStatus status);
+
+    // 같은 게시글에 대한 동시 신고를 줄 세운다
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Board> findLockedByIdAndStatus(Long id, Board.BoardStatus status);
 
     Page<Board> findByStatusOrderByCreatedAtDesc(Board.BoardStatus status, Pageable pageable);
 
