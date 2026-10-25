@@ -24,4 +24,6 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     // PostgreSQL Testcontainers 설정은 core-service 의 test fixtures 를 함께 쓴다
     testImplementation testFixtures(project(':services:core-service'))
+    // 발행·소비하는 이벤트를 같은 계약(JSON Schema)으로 검증한다
+    testImplementation testFixtures(project(':services:event-support'))
 }

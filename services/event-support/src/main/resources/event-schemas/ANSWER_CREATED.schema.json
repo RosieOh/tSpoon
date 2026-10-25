@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tspoon.local/event-schemas/ANSWER_CREATED.schema.json",
+  "title": "답변이 달렸다",
+  "description": "qna-service → tspoon.qna.events.",
+  "type": "object",
+  "required": [
+    "answerId",
+    "questionId",
+    "questionTitle",
+    "questionAuthorId",
+    "authorId",
+    "authorName",
+    "answerType",
+    "contentPreview"
+  ],
+  "properties": {
+    "answerId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "questionId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "questionTitle": {
+      "type": "string",
+      "minLength": 1
+    },
+    "questionAuthorId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "authorId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "authorName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "answerType": {
+      "enum": [
+        "PARENT",
+        "TEACHER",
+        "EXPERT",
+        "GENERAL"
+      ]
+    },
+    "contentPreview": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
