@@ -23,6 +23,9 @@ spring:
       properties:
         # 브로커가 없을 때 전송이 오래 붙잡히지 않게 한다 (outbox 릴레이는 다음 주기에 다시 보낸다)
         max.block.ms: 5000
+    consumer:
+      # 소비자 그룹이 처음 붙거나 오래 꺼져 있던 동안 쌓인 이벤트도 처음부터 읽는다
+      auto-offset-reset: earliest
   autoconfigure:
     exclude:
       # JWT 로만 인증하므로 Boot 가 만드는 기본 in-memory 사용자(랜덤 비밀번호)는 필요 없다

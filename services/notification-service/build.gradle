@@ -3,6 +3,8 @@ plugins {
 }
 
 dependencies {
+    // 소비자 공통 오류 처리(재시도·DLT)
+    implementation project(':services:event-support')
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     // community·qna 의 도메인 이벤트를 받아 알림을 만든다
     implementation 'org.springframework.boot:spring-boot-starter-kafka'

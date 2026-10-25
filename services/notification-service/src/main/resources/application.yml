@@ -7,10 +7,6 @@ spring:
     name: notification-service
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/notification_db
-  kafka:
-    consumer:
-      # 소비자 그룹이 처음 붙거나 오래 꺼져 있던 동안 쌓인 이벤트도 처음부터 읽는다
-      auto-offset-reset: earliest
   # 로컬·CI 는 docker compose 의 Mailpit(인증·TLS 없음, http://localhost:8025 에서 확인).
   # 실제 SMTP(예: Gmail 587)는 환경변수로 바꾼다
   mail:
