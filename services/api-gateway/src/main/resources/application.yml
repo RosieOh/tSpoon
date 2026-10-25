@@ -118,6 +118,20 @@ tspoon:
         - /api/users/email-verification/resend
         - /api/users/password-reset/request
         - /api/users/password-reset/confirm
+    # 인증 관련 API 의 클라이언트 IP 별 요청 제한 (AuthRateLimitProperties)
+    # 토큰 버킷: 초당 replenish-rate 개씩 채워지고 burst-capacity 개까지 한꺼번에 쓸 수 있다. 넘으면 429
+    rate-limit:
+      enabled: ${AUTH_RATE_LIMIT_ENABLED:true}
+      replenish-rate: ${AUTH_RATE_LIMIT_REPLENISH_RATE:2}
+      burst-capacity: ${AUTH_RATE_LIMIT_BURST_CAPACITY:30}
+      # 앞단 프록시(로드밸런서·Ingress) 수. 0 이면 X-Forwarded-For 를 믿지 않는다
+      trusted-proxies: ${AUTH_RATE_LIMIT_TRUSTED_PROXIES:0}
+      paths:
+        - /api/users/login
+        - /api/users/register
+        - /api/users/token/refresh
+        - /api/users/email-verification/**
+        - /api/users/password-reset/**
 
 # 서비스별 문서를 한곳에서: http://localhost:8080/swagger-ui.html
 # 운영에서 숨기려면 SPRINGDOC_SWAGGER_UI_ENABLED=false, SPRINGDOC_API_DOCS_ENABLED=false
