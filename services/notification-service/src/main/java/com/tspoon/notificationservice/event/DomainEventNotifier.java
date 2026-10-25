@@ -49,6 +49,7 @@ public class DomainEventNotifier {
             case "PASSWORD_RESET_REQUESTED" -> accountMailSender.sendPasswordReset(
                     payload.required("email").asString(), payload.required("name").asString(),
                     payload.required("token").asString(), Instant.parse(payload.required("expiresAt").asString()));
+            case "USER_WITHDRAWN" -> notificationService.deleteAllOf(payload.required("userId").asLong());
             case "PASSWORD_CHANGED" -> accountMailSender.sendPasswordChanged(
                     payload.required("email").asString(), payload.required("name").asString(),
                     Instant.parse(payload.required("changedAt").asString()));

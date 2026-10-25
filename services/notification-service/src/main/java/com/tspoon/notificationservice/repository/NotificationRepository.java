@@ -34,6 +34,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             """)
     int markAllRead(@Param("userId") Long userId, @Param("now") Instant now);
 
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.userId = :userId")
+    int deleteAllByUserId(@Param("userId") Long userId);
+
     // 이메일 발송 결과 기록 — 커밋 뒤 비동기로 호출되므로 자체 트랜잭션에서 실행한다
     @Transactional
     @Modifying
