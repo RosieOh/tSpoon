@@ -6,6 +6,7 @@ import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.test.KafkaTestRecords;
 import com.tspoon.core.test.KafkaTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.event.TspoonTopics;
 import com.tspoon.event.UserEventTypes;
 import com.tspoon.qnaservice.event.QnaEvents;
@@ -47,7 +48,7 @@ class QnaEventIntegrationTest {
                 "{\"title\": \"이름 바꿀 질문\", \"content\": \"내용\", \"category\": \"LEARNING\"}"));
         long answerId = id(post(renamed, "/api/questions/" + questionId + "/answers", "{\"content\": \"내 답변\"}"));
 
-        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "610", KafkaTestRecords.envelope(
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "610", EventContracts.envelope(
                 UserEventTypes.PROFILE_UPDATED, "USER", 610, "{\"userId\": 610, \"name\": \"새이름\"}"));
 
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
@@ -74,7 +75,7 @@ class QnaEventIntegrationTest {
                 "{\"title\": \"남길 질문\", \"content\": \"내용\", \"category\": \"LEARNING\"}"));
         long answerId = id(post(leaving, "/api/questions/" + questionId + "/answers", "{\"content\": \"남길 답변\"}"));
 
-        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "620", KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 620, "{\"userId\": 620, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}"));
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "620", EventContracts.envelope(UserEventTypes.WITHDRAWN, "USER", 620, "{\"userId\": 620, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}"));
 
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
             assertThat(jdbcTemplate.queryForObject("SELECT author_name FROM questions WHERE id = ?", String.class, questionId))
@@ -107,9 +108,11 @@ class QnaEventIntegrationTest {
     }
 
     private ConsumerRecord<String, String> consume(String eventType, long answerId) {
-        return KafkaTestRecords.consumeUntil(kafka.getBootstrapServers(), QnaEvents.TOPIC, value ->
+        ConsumerRecord<String, String> record = KafkaTestRecords.consumeUntil(kafka.getBootstrapServers(), QnaEvents.TOPIC, value ->
                 JsonPath.<String>read(value, "$.eventType").equals(eventType)
                         && JsonPath.<Number>read(value, "$.payload.answerId").longValue() == answerId);
+        EventContracts.assertConforms(record.value());
+        return record;
     }
 
     private MvcTestResult post(AuthUser user, String uri, String json) {

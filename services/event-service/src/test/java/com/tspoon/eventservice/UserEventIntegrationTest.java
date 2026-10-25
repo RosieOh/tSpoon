@@ -6,6 +6,7 @@ import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.test.KafkaTestRecords;
 import com.tspoon.core.test.KafkaTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.event.TspoonTopics;
 import com.tspoon.event.UserEventTypes;
 import org.junit.jupiter.api.Test;
@@ -71,10 +72,10 @@ class UserEventIntegrationTest {
                 .hasStatus(HttpStatus.CREATED);
         assertThat(mvc.get().uri("/api/events/{id}", eventId)).bodyJson().extractingPath("$.status").isEqualTo("FULL");
 
-        String withdrawn = KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 741, "{\"userId\": 741, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
+        String withdrawn = EventContracts.envelope(UserEventTypes.WITHDRAWN, "USER", 741, "{\"userId\": 741, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
         KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "741", withdrawn);
         KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "741", withdrawn);
-        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "740", KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 740, "{\"userId\": 740, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}"));
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "740", EventContracts.envelope(UserEventTypes.WITHDRAWN, "USER", 740, "{\"userId\": 740, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}"));
 
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
             assertThat(jdbcTemplate.queryForMap("SELECT status, user_name, notes, contact_info FROM event_registrations WHERE event_id = ?", eventId))
@@ -102,7 +103,7 @@ class UserEventIntegrationTest {
     }
 
     private void rename(long userId, String name) {
-        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, String.valueOf(userId), KafkaTestRecords.envelope(
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, String.valueOf(userId), EventContracts.envelope(
                 UserEventTypes.PROFILE_UPDATED, "USER", userId, "{\"userId\": %d, \"name\": \"%s\"}".formatted(userId, name)));
     }
 

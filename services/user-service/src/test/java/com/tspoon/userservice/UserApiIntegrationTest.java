@@ -5,6 +5,7 @@ import com.tspoon.auth.AuthUser;
 import com.tspoon.auth.jwt.JwtUtil;
 import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.userservice.entity.User;
 import com.tspoon.userservice.event.UserEvents;
 import com.tspoon.userservice.repository.UserRepository;
@@ -78,8 +79,10 @@ class UserApiIntegrationTest {
         assertThat(tokenService.currentVersion(userId)).isEqualTo(version);
 
         assertThat(updateProfile(userId, "새이름")).hasStatusOk().bodyJson().extractingPath("$.name").isEqualTo("새이름");
-        assertThat(profileEvents(userId)).singleElement()
-                .satisfies(payload -> assertThat(JsonPath.<String>read(payload, "$.name")).isEqualTo("새이름"));
+        assertThat(profileEvents(userId)).singleElement().satisfies(payload -> {
+            EventContracts.assertPayloadConforms(UserEvents.PROFILE_UPDATED, payload);
+            assertThat(JsonPath.<String>read(payload, "$.name")).isEqualTo("새이름");
+        });
         // 옛 이름이 담긴 토큰으로 새 글을 쓰지 못하게 — 재발급하면 새 이름이 담긴다
         assertThat(tokenService.currentVersion(userId)).isGreaterThan(version);
     }

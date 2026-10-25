@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.tspoon.core.test.KafkaTestRecords;
 import com.tspoon.core.test.KafkaTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.notificationservice.entity.Notification;
 import com.tspoon.notificationservice.event.DomainEventListener;
 import com.tspoon.notificationservice.repository.NotificationRepository;
@@ -226,7 +227,7 @@ class DomainEventConsumerIntegrationTest {
                 {"eventId": "%s", "eventType": "%s", "occurredAt": "2026-10-25T00:00:00Z",
                  "aggregateType": "TEST", "aggregateId": "1", "payload": %s}
                 """.formatted(eventId, eventType, payload);
-        JsonPath.parse(json); // 테스트 데이터가 올바른 JSON 인지 먼저 확인
+        EventContracts.assertConforms(json); // 발행 서비스와 같은 계약을 지킨 픽스처인지 먼저 확인
         return json;
     }
 }

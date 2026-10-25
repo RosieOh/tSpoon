@@ -3,6 +3,7 @@ package com.tspoon.userservice;
 import com.jayway.jsonpath.JsonPath;
 import com.tspoon.core.test.RedisTestcontainersConfiguration;
 import com.tspoon.core.test.TestcontainersConfiguration;
+import com.tspoon.event.test.EventContracts;
 import com.tspoon.userservice.event.UserEvents;
 import com.tspoon.userservice.repository.UserRepository;
 import com.tspoon.userservice.service.EmailVerificationService;
@@ -58,6 +59,7 @@ class EmailVerificationIntegrationTest {
         List<Map<String, Object>> events = verificationEvents(email);
         assertThat(events).hasSize(1);
         assertThat(events.getFirst()).containsEntry("topic", UserEvents.TOPIC);
+        EventContracts.assertPayloadConforms(UserEvents.EMAIL_VERIFICATION_REQUESTED, (String) events.getFirst().get("payload"));
         Map<String, Object> payload = JsonPath.read((String) events.getFirst().get("payload"), "$");
         assertThat(payload).containsEntry("email", email).containsEntry("name", "김부모").containsKeys("token", "expiresAt");
         assertThat(Instant.parse((String) payload.get("expiresAt")))
