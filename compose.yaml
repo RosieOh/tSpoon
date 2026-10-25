@@ -126,7 +126,8 @@ services:
   # 첨부파일·썸네일 저장소 — S3 호환 (SeaweedFS). 클라이언트는 Presigned URL 로 여기와 직접 주고받는다
   seaweedfs:
     image: chrislusf/seaweedfs:4.48
-    command: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json"]
+    # 기본은 컨테이너 IP 에만 바인딩해 컨테이너 안 헬스체크(localhost)가 닿지 않으므로 모든 주소에서 받는다
+    command: ["server", "-ip.bind=0.0.0.0", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json"]
     ports:
       - "${SEAWEEDFS_S3_PORT:-8333}:8333"
     volumes:

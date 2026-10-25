@@ -42,7 +42,7 @@ class FileIntegrationTest {
 
     // compose·Kubernetes 와 같은 SeaweedFS 이미지·S3 계정 설정
     private static final GenericContainer<?> SEAWEEDFS = new GenericContainer<>(DockerImageName.parse("chrislusf/seaweedfs:4.48"))
-            .withCommand("server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json")
+            .withCommand("server", "-ip.bind=0.0.0.0", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json")
             .withCopyFileToContainer(MountableFile.forHostPath("../../docker/seaweedfs/s3.json"), "/etc/seaweedfs/s3.json")
             .withExposedPorts(8333)
             .waitingFor(Wait.forHttp("/healthz").forPort(8333).withStartupTimeout(Duration.ofMinutes(2)));
