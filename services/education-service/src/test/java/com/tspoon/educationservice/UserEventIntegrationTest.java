@@ -46,16 +46,8 @@ class UserEventIntegrationTest {
 
     @Test
     void 회원_이름이_바뀌면_콘텐츠와_북마크에_복사해_둔_이름도_바뀐다() throws Exception {
-        String teacher = "Bearer " + jwtUtil.generateAccessToken(new AuthUser(710L, "teacher@tspoon.com", "옛이름", "TEACHER"));
-        MvcTestResult created = mvc.post().uri("/api/contents").header(HttpHeaders.AUTHORIZATION, teacher)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        {"title": "이름 바꿀 콘텐츠", "description": "설명", "content": "본문", "type": "ARTICLE",
-                         "category": "MATH", "estimatedTime": 15, "targetAge": "초등 저학년", "draft": false}
-                        """)
-                .exchange();
-        assertThat(created).hasStatus(HttpStatus.CREATED);
-        long contentId = JsonPath.<Number>read(created.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.id").longValue();
+        String teacher = bearer(710L, "옛이름", "TEACHER");
+        long contentId = createContent(teacher);
         assertThat(mvc.post().uri("/api/contents/{id}/bookmark", contentId).header(HttpHeaders.AUTHORIZATION, teacher)).hasStatusOk();
 
         KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "710", KafkaTestRecords.envelope(
@@ -67,5 +59,44 @@ class UserEventIntegrationTest {
             assertThat(jdbcTemplate.queryForObject("SELECT user_name FROM content_bookmarks WHERE content_id = ?", String.class, contentId))
                     .isEqualTo("새이름");
         });
+    }
+
+    @Test
+    void 탈퇴한_회원의_콘텐츠는_익명으로_남고_북마크는_지워져_북마크_수가_한_번만_줄어든다() throws Exception {
+        String leaving = bearer(730L, "떠날교사", "TEACHER");
+        long ownContent = createContent(leaving);
+        long otherContent = createContent(bearer(731L, "남는교사", "TEACHER"));
+        assertThat(mvc.post().uri("/api/contents/{id}/bookmark", otherContent).header(HttpHeaders.AUTHORIZATION, leaving)).hasStatusOk();
+        assertThat(mvc.post().uri("/api/contents/{id}/bookmark", otherContent).header(HttpHeaders.AUTHORIZATION, bearer(732L, "회원", "PARENT")))
+                .hasStatusOk();
+
+        String withdrawn = KafkaTestRecords.envelope(UserEventTypes.WITHDRAWN, "USER", 730, "{\"userId\": 730, \"withdrawnAt\": \"2026-10-26T00:00:00Z\"}");
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "730", withdrawn);
+        KafkaTestRecords.send(kafka.getBootstrapServers(), TspoonTopics.USER_EVENTS, "730", withdrawn);
+
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
+            assertThat(jdbcTemplate.queryForObject("SELECT author_name FROM education_contents WHERE id = ?", String.class, ownContent))
+                    .isEqualTo("탈퇴한 회원");
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM content_bookmarks WHERE user_id = 730", Long.class)).isZero();
+        });
+        Thread.sleep(1_000); // 두 번째 탈퇴 이벤트까지 처리될 시간
+        assertThat(jdbcTemplate.queryForObject("SELECT bookmark_count FROM education_contents WHERE id = ?", Integer.class, otherContent))
+                .isEqualTo(1);
+    }
+
+    private long createContent(String token) throws Exception {
+        MvcTestResult created = mvc.post().uri("/api/contents").header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title": "회원 이벤트 콘텐츠", "description": "설명", "content": "본문", "type": "ARTICLE",
+                         "category": "MATH", "estimatedTime": 15, "targetAge": "초등 저학년", "draft": false}
+                        """)
+                .exchange();
+        assertThat(created).hasStatus(HttpStatus.CREATED);
+        return JsonPath.<Number>read(created.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.id").longValue();
+    }
+
+    private String bearer(long userId, String name, String role) {
+        return "Bearer " + jwtUtil.generateAccessToken(new AuthUser(userId, "user" + userId + "@tspoon.com", name, role));
     }
 }
