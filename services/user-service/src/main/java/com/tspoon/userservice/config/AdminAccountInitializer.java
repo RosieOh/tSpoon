@@ -9,6 +9,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+
 /**
  * 관리자가 한 명도 없을 때만 초기 관리자 계정을 만든다.
  * 이미 관리자가 있거나 같은 이메일의 회원이 있으면 아무것도 바꾸지 않는다 (재기동해도 비밀번호를 덮어쓰지 않음).
@@ -47,6 +49,7 @@ public class AdminAccountInitializer implements ApplicationRunner {
                 .name(properties.name())
                 .role(User.UserRole.ADMIN)
                 .status(User.UserStatus.ACTIVE)
+                .emailVerifiedAt(Instant.now()) // 운영자가 직접 넣은 주소라 인증 메일을 보내지 않는다
                 .build());
         log.info("초기 관리자 계정을 만들었습니다: {}", properties.email());
     }

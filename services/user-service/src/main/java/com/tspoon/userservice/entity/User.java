@@ -60,6 +60,9 @@ public class User {
     @Column
     private String bio; // 자기소개
     
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt; // null 이면 이메일 미인증 — 로그인할 수 없다
+    
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Child> children = new ArrayList<>();
@@ -71,6 +74,10 @@ public class User {
     @LastModifiedDate
     @Column(name = "updated_at")
     private Instant updatedAt;
+    
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
+    }
     
     public enum UserRole {
         PARENT,      // 학부모

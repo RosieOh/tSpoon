@@ -28,13 +28,14 @@ class AdminAccountInitializerTest {
     }
 
     @Test
-    void 관리자가_없으면_관리자_계정을_만든다() {
+    void 관리자가_없으면_이메일_인증된_관리자_계정을_만든다() {
         run(new AdminProperties("admin@tspoon.com", "admin-password", "관리자"));
 
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(saved.capture());
         assertThat(saved.getValue().getRole()).isEqualTo(User.UserRole.ADMIN);
         assertThat(saved.getValue().getPassword()).isNotEqualTo("admin-password");
+        assertThat(saved.getValue().isEmailVerified()).isTrue();
     }
 
     @Test
