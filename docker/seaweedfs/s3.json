@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "tspoon-file-service",
+      "credentials": [
+        {
+          "accessKey": "tspoon-local-access-key",
+          "secretKey": "tspoon-local-secret-key-change-me"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

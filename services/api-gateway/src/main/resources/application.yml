@@ -49,6 +49,11 @@ spring:
               predicates:
                 - Path=/api/search/**
 
+            - id: file-service
+              uri: ${FILE_SERVICE_URI:lb://file-service}
+              predicates:
+                - Path=/api/files/**
+
             - id: notification-service
               uri: ${NOTIFICATION_SERVICE_URI:lb://notification-service}
               predicates:
@@ -95,6 +100,13 @@ spring:
               uri: ${SEARCH_SERVICE_URI:lb://search-service}
               predicates:
                 - Path=/docs/search-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: file-service-docs
+              uri: ${FILE_SERVICE_URI:lb://file-service}
+              predicates:
+                - Path=/docs/file-service/v3/api-docs
               filters:
                 - SetPath=/v3/api-docs
 
@@ -165,6 +177,8 @@ springdoc:
         url: /docs/notification-service/v3/api-docs
       - name: 검색 (search-service)
         url: /docs/search-service/v3/api-docs
+      - name: 파일 (file-service)
+        url: /docs/file-service/v3/api-docs
 
 eureka:
   client:

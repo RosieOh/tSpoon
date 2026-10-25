@@ -123,6 +123,27 @@ services:
     networks:
       - tspoon-network
 
+  # 첨부파일·썸네일 저장소 — S3 호환 (SeaweedFS). 클라이언트는 Presigned URL 로 여기와 직접 주고받는다
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.48
+    # 기본은 컨테이너 IP 에만 바인딩해 컨테이너 안 헬스체크(localhost)가 닿지 않으므로 모든 주소에서 받는다
+    command: ["server", "-ip.bind=0.0.0.0", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json"]
+    ports:
+      - "${SEAWEEDFS_S3_PORT:-8333}:8333"
+    volumes:
+      - seaweedfs-data:/data
+      # 로컬 전용 S3 계정 — 운영에서는 비밀 저장소에서 넣는다
+      - ./docker/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8333/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - tspoon-network
+
   # 이메일 알림 확인용 메일 캡처 서버 — 보낸 메일은 http://localhost:8025 에서 본다
   mailpit:
     image: axllent/mailpit:v1.32
@@ -275,8 +296,27 @@ services:
       opensearch:
         condition: service_healthy
 
+  # 파일 업로드 — 업로드·내려받기 URL 을 발급하고 올라간 파일을 확인한다
+  file-service:
+    <<: *java-service
+    image: tspoon/file-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args: { SERVICE: file-service, PORT: 8088 }
+    environment:
+      <<: *domain-service-env
+      FILE_STORAGE_ENDPOINT: http://seaweedfs:8333
+      # Presigned URL 은 호스트(브라우저·E2E)가 닿는 주소로 만든다
+      FILE_STORAGE_PUBLIC_ENDPOINT: http://localhost:${SEAWEEDFS_S3_PORT:-8333}
+    depends_on:
+      <<: *domain-service-depends-on
+      seaweedfs:
+        condition: service_healthy
+
 volumes:
   postgres-data:
+  seaweedfs-data:
 
 networks:
   tspoon-network:

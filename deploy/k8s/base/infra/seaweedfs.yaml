@@ -1,0 +1,63 @@
+# SeaweedFS — 첨부파일·썸네일을 두는 S3 호환 저장소 (로컬·검증용, 운영은 S3 등 관리형 저장소)
+# S3 계정 설정(s3.json)은 Secret 으로 넣는다 (overlay 의 seaweedfs-s3-config)
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+  labels:
+    app: seaweedfs
+spec:
+  selector:
+    app: seaweedfs
+  ports:
+    - name: s3
+      port: 8333
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+  labels:
+    app: seaweedfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: seaweedfs
+          image: chrislusf/seaweedfs:4.48
+          args: ["server", "-ip.bind=0.0.0.0", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json"]
+          ports:
+            - name: s3
+              containerPort: 8333
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: s3
+            periodSeconds: 5
+            failureThreshold: 30
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: s3-config
+              mountPath: /etc/seaweedfs
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: s3-config
+          secret:
+            secretName: seaweedfs-s3-config

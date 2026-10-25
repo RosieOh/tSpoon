@@ -649,11 +649,32 @@ def scenario_search():
     check("글 삭제 → 검색에서 빠짐", removed, search_hits(marker))
 
 
+def scenario_files():
+    print("[files] 파일 업로드 (Presigned URL → S3 호환 저장소)")
+    _, _, token = signup_login("파일회원")
+    data = bytes(range(256)) * 4
+    s, ticket, _ = call("POST", "/api/files/uploads", {"fileName": "자료.pdf", "contentType": "application/pdf", "size": len(data)},
+                        token=token)
+    put = urllib.request.Request(ticket["uploadUrl"], data=data, method="PUT", headers=ticket["headers"])
+    with urllib.request.urlopen(put, timeout=10) as res:
+        put_status = res.status
+    s2, done, _ = call("POST", f"/api/files/{ticket['fileId']}/complete", token=token)
+    check("업로드 URL 201 → 저장소로 직접 PUT 200 → 완료 확인 200", (s, put_status, s2) == (201, 200, 200)
+          and done["status"] == "UPLOADED", f"{s} {put_status} {s2} {done}")
+    s, info, _ = call("GET", f"/api/files/{ticket['fileId']}")
+    with urllib.request.urlopen(info["downloadUrl"], timeout=10) as res:
+        downloaded = res.read()
+    check("비로그인 파일 정보 → 내려받기 URL 로 같은 바이트", s == 200 and downloaded == data, f"{s} {len(downloaded)}")
+    s, _, _ = call("POST", "/api/files/uploads", {"fileName": "setup.exe", "contentType": "application/x-msdownload", "size": 10},
+                   token=token)
+    check("허용하지 않는 형식 400", s == 400, s)
+
+
 def scenario_docs():
     print("[docs] Gateway 통합 API 문서")
     s, config, _ = call("GET", "/v3/api-docs/swagger-config")
     names = [u["name"] for u in (config or {}).get("urls", [])]
-    check("Swagger UI 에 서비스 7개 문서", s == 200 and len(names) == 7, f"{s} {names}")
+    check("Swagger UI 에 서비스 8개 문서", s == 200 and len(names) == 8, f"{s} {names}")
     s, docs, _ = call("GET", "/docs/user-service/v3/api-docs")
     check("Gateway 경유 user-service 문서", s == 200 and "/api/users/login" in docs.get("paths", {}), s)
     s, docs, _ = call("GET", "/docs/community-service/v3/api-docs")
@@ -682,6 +703,7 @@ SCENARIOS = {
     "event-notifications": scenario_event_notifications,
     "notification-stream": scenario_notification_stream,
     "search": scenario_search,
+    "files": scenario_files,
     "docs": scenario_docs,
     "rate-limit": scenario_rate_limit,  # 한도를 소진하므로 마지막에
 }

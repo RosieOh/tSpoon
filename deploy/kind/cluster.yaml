@@ -1,4 +1,5 @@
-# kind 로컬 클러스터 — Gateway·Mailpit 을 호스트 포트로 연다 (docker compose 의 8080·8025 와 겹치지 않게 18080·18025)
+# kind 로컬 클러스터 — Gateway·Mailpit·파일 저장소(S3)를 호스트 포트로 연다 (docker compose 와 겹치지 않게 18080·18025·18333)
+# 포트 매핑은 클러스터를 만들 때만 적용되므로 바꾸면 deploy/kind/down.sh 뒤 다시 up.sh
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: tspoon
@@ -9,3 +10,5 @@ nodes:
         hostPort: 18080
       - containerPort: 30025
         hostPort: 18025
+      - containerPort: 30833
+        hostPort: 18333

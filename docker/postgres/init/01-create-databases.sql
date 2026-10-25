@@ -6,3 +6,4 @@ CREATE DATABASE education_db;
 CREATE DATABASE qna_db;
 CREATE DATABASE event_db;
 CREATE DATABASE notification_db;
+CREATE DATABASE file_db;
