@@ -29,4 +29,9 @@ public class KafkaConsumerConfig {
     public NewTopic userEventsTopic() {
         return TopicBuilder.name(DomainEventListener.USER_TOPIC).partitions(TspoonTopics.PARTITIONS).replicas(1).build();
     }
+
+    @Bean
+    public NewTopic eventEventsTopic() {
+        return TopicBuilder.name(DomainEventListener.EVENT_TOPIC).partitions(TspoonTopics.PARTITIONS).replicas(1).build();
+    }
 }

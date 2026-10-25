@@ -1,6 +1,7 @@
 package com.tspoon.notificationservice.event;
 
 import com.tspoon.event.CommunityEventTypes;
+import com.tspoon.event.EventEventTypes;
 import com.tspoon.event.QnaEventTypes;
 import com.tspoon.event.UserEventTypes;
 import com.tspoon.notificationservice.entity.Notification.NotificationType;
@@ -15,6 +16,9 @@ import tools.jackson.databind.JsonNode;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -27,6 +31,8 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class DomainEventNotifier {
+
+    private static final DateTimeFormatter EVENT_TIME = DateTimeFormatter.ofPattern("M월 d일 (E) HH:mm", Locale.KOREAN);
 
     private final NotificationService notificationService;
     private final AccountMailSender accountMailSender;
@@ -46,6 +52,8 @@ public class DomainEventNotifier {
             case CommunityEventTypes.COMMENT_CREATED -> onCommentCreated(payload);
             case QnaEventTypes.ANSWER_CREATED -> onAnswerCreated(payload);
             case QnaEventTypes.ANSWER_ACCEPTED -> onAnswerAccepted(payload);
+            case EventEventTypes.EVENT_REMINDER -> onEventReminder(payload);
+            case EventEventTypes.EVENT_CANCELLED -> onEventCancelled(payload);
             case UserEventTypes.EMAIL_VERIFICATION_REQUESTED -> accountMailSender.sendEmailVerification(
                     payload.required("email").asString(), payload.required("name").asString(),
                     payload.required("token").asString(), Instant.parse(payload.required("expiresAt").asString()));
@@ -97,6 +105,27 @@ public class DomainEventNotifier {
         notify(event.required("answerAuthorId").asLong(), "내 답변이 채택되었습니다",
                 "[" + event.required("questionTitle").asString() + "] 질문자가 답변을 채택했습니다.",
                 NotificationType.QNA, "/questions/" + questionId, "QUESTION", questionId);
+    }
+
+    private void onEventReminder(JsonNode event) {
+        long eventId = event.required("eventId").asLong();
+        JsonNode location = event.get("location");
+        String where = location == null || location.isNull() ? "" : " · " + location.asString();
+        String content = "[" + event.required("title").asString() + "] " + startsAt(event) + where;
+        event.required("recipientIds").forEach(recipient -> notify(recipient.asLong(), "신청한 행사가 곧 시작합니다", content,
+                NotificationType.REMINDER, "/events/" + eventId, "EVENT", eventId));
+    }
+
+    private void onEventCancelled(JsonNode event) {
+        long eventId = event.required("eventId").asLong();
+        String content = "[" + event.required("title").asString() + "] " + startsAt(event) + " 행사가 취소되었습니다.";
+        event.required("recipientIds").forEach(recipient -> notify(recipient.asLong(), "신청한 행사가 취소되었습니다", content,
+                NotificationType.EVENT, "/events/" + eventId, "EVENT", eventId));
+    }
+
+    // 행사 일정은 현지(한국) 시각이라 시간대 변환 없이 그대로 보여 준다
+    private static String startsAt(JsonNode event) {
+        return LocalDateTime.parse(event.required("startDate").asString()).format(EVENT_TIME);
     }
 
     private void notify(Long userId, String title, String content, NotificationType type, String actionUrl,
