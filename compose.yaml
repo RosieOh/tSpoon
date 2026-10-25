@@ -178,7 +178,10 @@ services:
       dockerfile: docker/Dockerfile
       args: { SERVICE: education-service, PORT: 8083 }
     environment: *domain-service-env
-    depends_on: *domain-service-depends-on
+    depends_on:
+      <<: *domain-service-depends-on
+      kafka:
+        condition: service_healthy
 
   qna-service:
     <<: *java-service
@@ -201,7 +204,10 @@ services:
       dockerfile: docker/Dockerfile
       args: { SERVICE: event-service, PORT: 8085 }
     environment: *domain-service-env
-    depends_on: *domain-service-depends-on
+    depends_on:
+      <<: *domain-service-depends-on
+      kafka:
+        condition: service_healthy
 
   notification-service:
     <<: *java-service
