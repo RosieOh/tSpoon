@@ -65,8 +65,10 @@ class CommentEventIntegrationTest {
                 "{\"title\": \"이벤트 글\", \"content\": \"본문\", \"category\": \"GENERAL\"}"));
         long commentId = id(post(bearer(501L, "댓글러"), "/api/boards/" + boardId + "/comments", "{\"content\": \"댓글입니다\"}"));
 
+        // 같은 토픽에 게시글 공개 이벤트도 흐르므로 유형부터 본다
         ConsumerRecord<String, String> record = KafkaTestRecords.consumeUntil(kafka.getBootstrapServers(), CommunityEvents.TOPIC,
-                value -> JsonPath.<Number>read(value, "$.payload.commentId").longValue() == commentId);
+                value -> JsonPath.<String>read(value, "$.eventType").equals(CommunityEvents.COMMENT_CREATED)
+                        && JsonPath.<Number>read(value, "$.payload.commentId").longValue() == commentId);
 
         EventContracts.assertConforms(record.value());
         assertThat(record.key()).isEqualTo(String.valueOf(boardId));

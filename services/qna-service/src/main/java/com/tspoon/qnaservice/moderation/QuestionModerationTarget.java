@@ -3,6 +3,7 @@ package com.tspoon.qnaservice.moderation;
 import com.tspoon.moderation.ModerationTarget;
 import com.tspoon.qnaservice.entity.Question;
 import com.tspoon.qnaservice.entity.Question.QuestionStatus;
+import com.tspoon.qnaservice.event.QuestionPublications;
 import com.tspoon.qnaservice.repository.QuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ public class QuestionModerationTarget implements ModerationTarget {
     private static final Set<QuestionStatus> VISIBLE = EnumSet.of(QuestionStatus.OPEN, QuestionStatus.ANSWERED, QuestionStatus.CLOSED);
 
     private final QuestionRepository questionRepository;
+    private final QuestionPublications questionPublications;
 
     @Override
     public String collection() {
@@ -46,6 +48,7 @@ public class QuestionModerationTarget implements ModerationTarget {
                 .ifPresent(question -> {
                     question.setStatusBeforeHidden(question.getStatus());
                     question.setStatus(QuestionStatus.HIDDEN);
+                    questionPublications.removed(id);
                 });
     }
 
@@ -57,6 +60,7 @@ public class QuestionModerationTarget implements ModerationTarget {
                     QuestionStatus previous = question.getStatusBeforeHidden();
                     question.setStatus(previous == null ? QuestionStatus.OPEN : previous);
                     question.setStatusBeforeHidden(null);
+                    questionPublications.published(question);
                 });
     }
 

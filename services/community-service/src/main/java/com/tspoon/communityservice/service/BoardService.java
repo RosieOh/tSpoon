@@ -5,6 +5,7 @@ import com.tspoon.communityservice.dto.BoardRequest;
 import com.tspoon.communityservice.dto.BoardResponse;
 import com.tspoon.communityservice.entity.Board;
 import com.tspoon.communityservice.entity.BoardLike;
+import com.tspoon.communityservice.event.BoardPublications;
 import com.tspoon.communityservice.repository.BoardLikeRepository;
 import com.tspoon.communityservice.repository.BoardRepository;
 import com.tspoon.core.exception.BusinessException;
@@ -25,6 +26,7 @@ public class BoardService {
 
     private final BoardRepository boardRepository;
     private final BoardLikeRepository boardLikeRepository;
+    private final BoardPublications boardPublications;
 
     @Transactional(readOnly = true)
     public Page<BoardResponse> getAllBoards(int page, int size, Board.BoardCategory category) {
@@ -62,7 +64,9 @@ public class BoardService {
                 .status(Board.BoardStatus.ACTIVE)
                 .build();
 
-        return BoardResponse.from(boardRepository.save(board));
+        Board saved = boardRepository.save(board);
+        boardPublications.published(saved);
+        return BoardResponse.from(saved);
     }
 
     public BoardResponse updateBoard(AuthUser authUser, Long id, BoardRequest request) {
@@ -75,7 +79,9 @@ public class BoardService {
         board.setTags(request.tags());
         board.setAttachments(request.attachments());
 
-        return BoardResponse.from(boardRepository.saveAndFlush(board));
+        Board saved = boardRepository.saveAndFlush(board);
+        boardPublications.published(saved);
+        return BoardResponse.from(saved);
     }
 
     // 작성자 본인 또는 관리자(운영상 삭제)
@@ -86,6 +92,7 @@ public class BoardService {
         }
 
         board.setStatus(Board.BoardStatus.DELETED);
+        boardPublications.removed(id);
     }
 
     public void likeBoard(AuthUser authUser, Long id) {

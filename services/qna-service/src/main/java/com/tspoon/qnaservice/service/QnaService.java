@@ -13,6 +13,7 @@ import com.tspoon.qnaservice.entity.Answer;
 import com.tspoon.qnaservice.entity.Question;
 import com.tspoon.qnaservice.entity.Question.QuestionStatus;
 import com.tspoon.qnaservice.event.QnaEvents;
+import com.tspoon.qnaservice.event.QuestionPublications;
 import com.tspoon.qnaservice.repository.AnswerRepository;
 import com.tspoon.qnaservice.repository.QuestionRepository;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class QnaService {
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
     private final OutboxEventPublisher outboxEventPublisher;
+    private final QuestionPublications questionPublications;
 
     @Transactional(readOnly = true)
     public Page<QuestionSummary> search(Question.QuestionCategory category, QuestionStatus status, int page, int size) {
@@ -68,6 +70,7 @@ public class QnaService {
                 .attachments(request.attachments())
                 .status(QuestionStatus.OPEN)
                 .build());
+        questionPublications.published(question);
         return QuestionDetailResponse.of(question, List.of());
     }
 
@@ -84,7 +87,7 @@ public class QnaService {
         }
         question.setTags(request.tags());
         question.setAttachments(request.attachments());
-        questionRepository.saveAndFlush(question);
+        questionPublications.published(questionRepository.saveAndFlush(question));
         return getQuestionWithoutCounting(id);
     }
 
@@ -93,6 +96,7 @@ public class QnaService {
         Question question = findVisibleQuestion(id);
         if (user.isAdmin()) {
             question.setStatus(QuestionStatus.DELETED);
+            questionPublications.removed(id);
             return;
         }
         if (!question.getAuthorId().equals(user.userId())) {
@@ -102,6 +106,7 @@ public class QnaService {
             throw new BusinessException("답변이 달린 질문은 삭제할 수 없습니다.", HttpStatus.CONFLICT);
         }
         question.setStatus(QuestionStatus.DELETED);
+        questionPublications.removed(id);
     }
 
     public void close(AuthUser user, Long id) {
