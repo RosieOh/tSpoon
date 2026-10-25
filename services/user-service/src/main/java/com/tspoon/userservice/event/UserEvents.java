@@ -1,5 +1,7 @@
 package com.tspoon.userservice.event;
 
+import com.tspoon.event.TspoonTopics;
+import com.tspoon.event.UserEventTypes;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,16 +15,17 @@ import java.time.Instant;
 @Configuration(proxyBeanMethods = false)
 public class UserEvents {
 
-    public static final String TOPIC = "tspoon.user.events";
+    public static final String TOPIC = TspoonTopics.USER_EVENTS;
     public static final String AGGREGATE_USER = "USER";
-    public static final String EMAIL_VERIFICATION_REQUESTED = "EMAIL_VERIFICATION_REQUESTED";
-    public static final String PASSWORD_RESET_REQUESTED = "PASSWORD_RESET_REQUESTED";
-    public static final String PASSWORD_CHANGED = "PASSWORD_CHANGED";
+    public static final String EMAIL_VERIFICATION_REQUESTED = UserEventTypes.EMAIL_VERIFICATION_REQUESTED;
+    public static final String PASSWORD_RESET_REQUESTED = UserEventTypes.PASSWORD_RESET_REQUESTED;
+    public static final String PASSWORD_CHANGED = UserEventTypes.PASSWORD_CHANGED;
+    public static final String PROFILE_UPDATED = UserEventTypes.PROFILE_UPDATED;
 
     // 로컬·CI 는 브로커가 하나라 복제본 1
     @Bean
     public NewTopic userEventsTopic() {
-        return TopicBuilder.name(TOPIC).partitions(3).replicas(1).build();
+        return TopicBuilder.name(TOPIC).partitions(TspoonTopics.PARTITIONS).replicas(1).build();
     }
 
     /**
@@ -38,5 +41,9 @@ public class UserEvents {
 
     /** 비밀번호가 바뀌었다 (재설정·변경 모두). 본인이 아닌 변경을 알아챌 수 있도록 메일로 알린다 */
     public record PasswordChanged(Long userId, String email, String name, Instant changedAt) {
+    }
+
+    /** 이름이 바뀌었다. 다른 서비스가 복사해 둔 작성자 이름을 바꾼다 */
+    public record ProfileUpdated(Long userId, String name) {
     }
 }
