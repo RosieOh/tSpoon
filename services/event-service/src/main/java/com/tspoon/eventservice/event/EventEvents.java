@@ -21,6 +21,7 @@ public class EventEvents {
     public static final String AGGREGATE_EVENT = "EVENT";
     public static final String EVENT_REMINDER = EventEventTypes.EVENT_REMINDER;
     public static final String EVENT_CANCELLED = EventEventTypes.EVENT_CANCELLED;
+    public static final String WAITLIST_PROMOTED = EventEventTypes.WAITLIST_PROMOTED;
 
     // 로컬·CI 는 브로커가 하나라 복제본 1
     @Bean
@@ -33,5 +34,9 @@ public class EventEvents {
     }
 
     public record EventCancelled(Long eventId, String title, LocalDateTime startDate, List<Long> recipientIds) {
+    }
+
+    /** 대기하던 회원의 신청이 확정됐다 */
+    public record WaitlistPromoted(Long eventId, String title, LocalDateTime startDate, Long userId) {
     }
 }

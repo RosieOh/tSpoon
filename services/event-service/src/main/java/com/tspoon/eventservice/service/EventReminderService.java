@@ -52,7 +52,7 @@ public class EventReminderService {
             if (eventRepository.claimReminder(eventId, Instant.now(clock)) == 0) {
                 continue; // 다른 인스턴스가 먼저 보냈다
             }
-            List<Long> recipients = registrationRepository.findUserIds(eventId, RegistrationStatus.REGISTERED);
+            List<Long> recipients = registrationRepository.findUserIds(eventId, Set.of(RegistrationStatus.REGISTERED));
             if (recipients.isEmpty()) {
                 continue;
             }

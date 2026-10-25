@@ -49,6 +49,9 @@ public class EventRegistration {
     
     @Column
     private String contactInfo; // 연락처 정보
+
+    @Column(name = "waitlisted_at")
+    private Instant waitlistedAt; // 대기자로 들어온 시각 — 대기 순번의 기준
     
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -60,6 +63,7 @@ public class EventRegistration {
     
     public enum RegistrationStatus {
         REGISTERED,     // 등록됨
+        WAITLISTED,     // 정원이 차서 대기 중 — 자리가 나면 먼저 대기한 순서대로 확정
         CANCELLED,      // 취소됨
         ATTENDED,       // 참석함
         NO_SHOW         // 불참
