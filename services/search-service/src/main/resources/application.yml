@@ -1,0 +1,22 @@
+# 공통 기본값(가상 스레드, Eureka, Actuator, JWT, Kafka)은 core-service 의 tspoon-defaults.yml 참고
+server:
+  port: 8087
+
+spring:
+  application:
+    name: search-service
+
+tspoon:
+  security:
+    # 검색은 공개 글만 담으므로 비로그인으로도 쓸 수 있다
+    public-get-paths:
+      - /api/search
+  # OpenSearch 와 색인 (SearchProperties)
+  search:
+    opensearch-url: ${OPENSEARCH_URL:http://localhost:9200}
+    index: ${SEARCH_INDEX:tspoon-search}
+    analyzer: ${SEARCH_ANALYZER:nori}
+
+logging:
+  level:
+    com.tspoon: DEBUG

@@ -1,0 +1,25 @@
+// 통합 검색 — 게시글·질문·교육 콘텐츠를 OpenSearch(한국어 형태소 분석 nori)에 색인하고 찾는다.
+// 각 서비스가 발행한 이벤트로 색인을 갱신하는 읽기 전용 모델(CQRS)이라 자체 DB 는 없다.
+plugins {
+    id 'tspoon.spring-boot-app'
+}
+
+dependencies {
+    implementation project(':services:core-service')
+    implementation project(':services:observability-support')
+    implementation project(':services:event-support')
+
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    // 다른 서비스와 같은 페이지 응답 형식(PagedModel)
+    implementation 'org.springframework.data:spring-data-commons'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation testFixtures(project(':services:core-service'))
+    testImplementation testFixtures(project(':services:event-support'))
+}
