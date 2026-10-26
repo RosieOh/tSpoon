@@ -1,0 +1,428 @@
+@import "tailwindcss";
+
+/*
+ * 티스푼 디자인 토큰
+ * - 브랜드: 천재교육 CI 컬러시스템 — CHUNJAE GREEN(해법 심볼, 메인), BLUE·SKY BLUE(천재교과서, 정보), BLACK
+ *   (CI 는 인쇄용 CMYK 라 공식 사이트에 표시된 색을 화면용 값으로 쓴다)
+ * - 콘텐츠 층: 회색 바탕 위 흰 블록, 또렷한 글자
+ * - 떠 있는 층(탭바·내비바·시트·토스트·FAB): Liquid Glass
+ */
+:root {
+  --bg: #f2f4f6;
+  --surface: #ffffff;
+  --fill: #f2f4f6;
+  --fill-strong: #e5e8eb;
+  --line: #e5e8eb;
+  --ink: #191f28;
+  --ink-2: #333d4b;
+  /* 보조 글자도 회색 바탕(#f2f4f6) 위에서 4.5:1 을 넘게 */
+  --ink-3: #5d6876;
+  --ink-4: #636e7c;
+  --ink-5: #b0b8c1;
+  /* CHUNJAE GREEN. 버튼처럼 면으로 쓸 때는 CI 색 그대로, 흰 바탕 위 작은 글자는 대비 4.5:1 을 넘는 primary-ink */
+  --primary: #009944;
+  --primary-pressed: #007f39;
+  --primary-ink: #00873d;
+  --primary-weak: #e3f4e9;
+  --primary-weak-ink: #00743a;
+  /* CHUNJAE SKY BLUE — 정보·안내 */
+  --info: #008ccf;
+  --info-weak: #e2f2fb;
+  --info-ink: #0070a8;
+  /* 하이라이트 (천재교육 사이트의 강조 노랑) */
+  --highlight: #ffc80a;
+  --positive: #00873d;
+  --positive-weak: #e3f4e9;
+  --danger: #f04452;
+  --danger-weak: #ffeeee;
+  --danger-ink: #d01f35;
+  --warn: #fe9800;
+  --warn-weak: #fff3e0;
+  --warn-ink: #a35400;
+  --dim: rgb(0 12 30 / 0.36);
+
+  /* Liquid Glass */
+  --glass-tint: rgb(255 255 255 / 0.56);
+  --glass-tint-strong: rgb(255 255 255 / 0.78);
+  --glass-rim-hi: rgb(255 255 255 / 0.95);
+  --glass-rim-lo: rgb(255 255 255 / 0.5);
+  --glass-sheen: rgb(255 255 255 / 0.85);
+  --glass-shadow: 0 12px 36px -12px rgb(25 31 40 / 0.22), 0 2px 8px -2px rgb(25 31 40 / 0.08);
+  --glass-blur: 14px;
+
+  /*
+   * 글꼴: 처음엔 시스템 한글 글꼴로 그리고, 화면에 필요한 Pretendard 서브셋이 모두 도착하면
+   * html.fonts-ready 로 한 번에 바꾼다 (서브셋이 하나씩 올 때마다 다시 그리지 않게 — layout.tsx 의 FONT_LOADER)
+   */
+  --font-fallback: -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
+    sans-serif;
+  --font-stack: var(--font-fallback);
+
+  --tint-mix: 13%;
+  /* 카테고리 색 글자: 이 비율만큼 색을 섞고 나머지는 진한 글자 — 모든 카테고리 색에서 4.5:1 이상 */
+  --tint-ink-mix: 42%;
+  color-scheme: light;
+}
+
+html.fonts-ready {
+  --font-stack: "Pretendard Variable", Pretendard, var(--font-fallback);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101013;
+    --surface: #1c1c21;
+    --fill: #2a2a31;
+    --fill-strong: #36363f;
+    --line: #2c2c34;
+    --ink: #f6f7f9;
+    --ink-2: #d4d8dd;
+    --ink-3: #9ea5ae;
+    --ink-4: #8f97a2;
+    --ink-5: #565c66;
+    --primary: #10a653;
+    --primary-pressed: #23b864;
+    --primary-ink: #3ed07f;
+    --primary-weak: rgb(16 166 83 / 0.18);
+    --primary-weak-ink: #5fda94;
+    --info: #2ba3e0;
+    --info-weak: rgb(43 163 224 / 0.16);
+    --info-ink: #6cc3f0;
+    --highlight: #ffd23f;
+    --positive: #3ed07f;
+    --positive-weak: rgb(16 166 83 / 0.18);
+    --danger: #ff5c68;
+    --danger-weak: rgb(255 92 104 / 0.15);
+    --danger-ink: #ff7a84;
+    --warn: #ffab33;
+    --warn-weak: rgb(255 171 51 / 0.15);
+    --warn-ink: #ffbb57;
+    --dim: rgb(0 0 0 / 0.55);
+
+    --glass-tint: rgb(44 44 52 / 0.52);
+    --glass-tint-strong: rgb(44 44 52 / 0.8);
+    --glass-rim-hi: rgb(255 255 255 / 0.32);
+    --glass-rim-lo: rgb(255 255 255 / 0.08);
+    --glass-sheen: rgb(255 255 255 / 0.18);
+    --glass-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6), 0 2px 8px -2px rgb(0 0 0 / 0.4);
+
+    --tint-mix: 22%;
+    --tint-ink-mix: 70%;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-stack);
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fill: var(--fill);
+  --color-fill-strong: var(--fill-strong);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-5: var(--ink-5);
+  --color-primary: var(--primary);
+  --color-primary-pressed: var(--primary-pressed);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-weak: var(--primary-weak);
+  --color-primary-weak-ink: var(--primary-weak-ink);
+  --color-info: var(--info);
+  --color-info-weak: var(--info-weak);
+  --color-info-ink: var(--info-ink);
+  --color-highlight: var(--highlight);
+  --color-positive: var(--positive);
+  --color-positive-weak: var(--positive-weak);
+  --color-danger: var(--danger);
+  --color-danger-weak: var(--danger-weak);
+  --color-danger-ink: var(--danger-ink);
+  --color-warn: var(--warn);
+  --color-warn-weak: var(--warn-weak);
+  --color-warn-ink: var(--warn-ink);
+
+  /* 타입 스케일 — 토스처럼 큰 제목과 15~17px 본문, 한글 제목은 자간을 살짝 좁힌다 */
+  --text-display: 30px;
+  --text-display--line-height: 1.3;
+  --text-display--letter-spacing: -0.025em;
+  --text-display--font-weight: 700;
+  --text-t1: 26px;
+  --text-t1--line-height: 1.35;
+  --text-t1--letter-spacing: -0.02em;
+  --text-t1--font-weight: 700;
+  --text-t2: 22px;
+  --text-t2--line-height: 1.4;
+  --text-t2--letter-spacing: -0.02em;
+  --text-t2--font-weight: 700;
+  --text-t3: 19px;
+  --text-t3--line-height: 1.45;
+  --text-t3--letter-spacing: -0.015em;
+  --text-t3--font-weight: 600;
+  --text-t4: 17px;
+  --text-t4--line-height: 1.5;
+  --text-t4--letter-spacing: -0.01em;
+  --text-body: 16px;
+  --text-body--line-height: 1.7;
+  --text-t5: 15px;
+  --text-t5--line-height: 1.55;
+  --text-t6: 14px;
+  --text-t6--line-height: 1.5;
+  --text-t7: 13px;
+  --text-t7--line-height: 1.45;
+  --text-t8: 12px;
+  --text-t8--line-height: 1.4;
+
+  --radius-section: 24px;
+  --radius-tile: 18px;
+  --radius-button: 16px;
+  --radius-field: 14px;
+
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    font-feature-settings: "ss06";
+  }
+
+  :focus-visible {
+    outline: 2.5px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  ::placeholder {
+    color: var(--ink-5);
+  }
+}
+
+/* 숫자는 고정폭 — 카운트가 바뀌어도 흔들리지 않게 */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 토스식 눌림 피드백 */
+@utility press {
+  transition: transform 160ms var(--ease-spring), background-color 160ms ease, opacity 160ms ease;
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+@utility press-row {
+  transition: background-color 120ms ease;
+  &:active {
+    background-color: var(--fill);
+  }
+  @media (hover: hover) {
+    &:hover {
+      background-color: color-mix(in oklab, var(--fill) 60%, transparent);
+    }
+  }
+}
+
+/* 카테고리 색을 은은한 바탕으로 — --tint 를 인라인으로 받는다 */
+@utility tint-bg {
+  background-color: color-mix(in oklab, var(--tint) var(--tint-mix), var(--surface));
+}
+
+@utility tint-bg-strong {
+  background-color: color-mix(in oklab, var(--tint) calc(var(--tint-mix) * 1.8), var(--surface));
+}
+
+/* 카테고리 색 글자 — 라이트에서는 어둡게, 다크에서는 밝게 섞어 대비를 지킨다 */
+@utility tint-ink {
+  color: color-mix(in oklab, var(--tint) var(--tint-ink-mix), var(--ink));
+}
+
+/* 화면 밖 목록 항목은 레이아웃·페인트를 건너뛴다. 높이는 한 번 그려진 값을 기억한다 */
+@utility cv-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 132px;
+}
+
+/* 홈의 아래쪽 섹션 — 폰트가 도착해 다시 그릴 때도 화면 밖 섹션은 건너뛴다 */
+@utility cv-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+
+@utility cv-tile {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 고정 요소를 본문 열(640px)에 맞춘다. 데스크톱에서는 사이드바만큼 비켜 선다 */
+@utility column-fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  max-width: 640px;
+  @media (min-width: 1024px) {
+    left: 264px;
+  }
+}
+
+/*
+ * Liquid Glass 머티리얼
+ * 1) 배경을 흐리고 채도를 올려 뒤의 색이 비쳐 보이게
+ * 2) ::before — 빛을 받는 가장자리(스페큘러 림)
+ * 3) ::after — 윗면 광택과 안쪽 반사
+ * 굴절(렌즈)은 Chromium 에서만 LiquidGlass 컴포넌트가 SVG 필터로 덧붙인다
+ */
+@utility glass {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--glass-tint);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(190%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(190%);
+  box-shadow: var(--glass-shadow);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      150deg,
+      var(--glass-rim-hi) 0%,
+      transparent 32%,
+      transparent 64%,
+      var(--glass-rim-lo) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 1px 0.5px 0 var(--glass-sheen),
+      inset 0 -6px 14px -10px rgb(255 255 255 / 0.25),
+      inset 0 0 0 0.5px rgb(255 255 255 / 0.06);
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* 교과서 표지 위의 작은 유리 — 표지는 다크 모드에서도 밝은 인쇄물이라 유리도 늘 밝게 */
+@utility glass-on-cover {
+  --glass-tint: rgb(255 255 255 / 0.62);
+  --glass-rim-hi: rgb(255 255 255 / 0.95);
+  --glass-rim-lo: rgb(255 255 255 / 0.5);
+  --glass-sheen: rgb(255 255 255 / 0.85);
+  color: #191f28;
+}
+
+/* 시트처럼 글자가 많이 올라가는 유리는 조금 더 불투명하게 */
+@utility glass-thick {
+  background-color: var(--glass-tint-strong);
+  --glass-blur: 28px;
+}
+
+/* 투명도 줄이기를 켠 사용자에게는 불투명한 면으로 */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background-color: var(--surface) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 스켈레톤 */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@utility skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--fill) 0%,
+    color-mix(in oklab, var(--fill-strong) 70%, var(--fill)) 50%,
+    var(--fill) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@keyframes like-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@utility animate-like-pop {
+  animation: like-pop 450ms var(--ease-spring);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
