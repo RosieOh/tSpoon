@@ -14,7 +14,7 @@ opentelemetry-instrumentation = "2.21.0-alpha"
 # 이벤트 계약(JSON Schema) 검증 — 3.x 는 Jackson 3(tools.jackson) 기반
 json-schema-validator = "3.0.8"
 # 파일 업로드(file-service)의 S3 호환 저장소 접근 — Presigned URL
-aws-sdk = "2.55.14"
+aws-sdk = "2.57.5"
 
 [libraries]
 spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
