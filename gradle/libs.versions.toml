@@ -12,9 +12,9 @@ springdoc = "3.0.3"
 # Boot 4.0.9 가 관리하는 OpenTelemetry SDK(1.55.0)에 맞춘 계측 라이브러리 버전
 opentelemetry-instrumentation = "2.21.0-alpha"
 # 이벤트 계약(JSON Schema) 검증 — 3.x 는 Jackson 3(tools.jackson) 기반
-json-schema-validator = "3.0.8"
+json-schema-validator = "3.0.9"
 # 파일 업로드(file-service)의 S3 호환 저장소 접근 — Presigned URL
-aws-sdk = "2.55.14"
+aws-sdk = "2.57.13"
 
 [libraries]
 spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
